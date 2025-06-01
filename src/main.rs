@@ -2,6 +2,7 @@ use crate::command::Command;
 use std::env;
 
 mod command;
+mod config;
 
 fn main() {
     //Get arguments passed to this program

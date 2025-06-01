@@ -40,7 +40,7 @@ The Yalc executable must simply be installed in some `$PATH` included folder.
 
 ### Example usage
 ```bash
-# Check if yalc is installed properly by show the installed version
+# Check if yalc is installed properly by showing the installed version
 yalc version
 ```
 

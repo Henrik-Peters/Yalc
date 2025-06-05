@@ -3,6 +3,7 @@ use std::env;
 
 mod command;
 mod config;
+mod constants;
 
 fn main() {
     //Get arguments passed to this program

@@ -56,6 +56,7 @@ These plugins may be helpful for development with Rust:
 ```bash
 # Pass shell params via cargo
 cargo run -- run input.txt output.txt
+cargo run -- config check
 
 # Show default compile target and details
 rustc --version --verbose

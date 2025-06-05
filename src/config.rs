@@ -8,6 +8,8 @@ pub mod config_commands;
 pub mod toml_parser;
 pub mod toml_writer;
 
+pub use config_commands::*;
+
 /// Represents the config for an executing of the yalc cleanup
 #[derive(Debug)]
 pub struct Config {

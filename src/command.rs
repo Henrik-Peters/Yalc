@@ -4,7 +4,7 @@
 //! Other modules may be using to execute commands.
 //!
 
-use crate::constants::YALC_VERSION;
+use crate::{config, constants::YALC_VERSION};
 
 /// Enum representing different commands that can be executed
 #[derive(Debug)]
@@ -16,7 +16,7 @@ pub enum Command {
     Version,
 
     /// Config command which always has one argument
-    Config(ConfigCommandArg),
+    Config(ConfigArg),
 
     /// Run command to execute with additional arguments
     Run(Vec<String>),
@@ -24,7 +24,7 @@ pub enum Command {
 
 /// Enum representing different config command arguments
 #[derive(Debug)]
-pub enum ConfigCommandArg {
+pub enum ConfigArg {
     /// Crates a new config file with default values
     Init,
 
@@ -47,15 +47,16 @@ impl Command {
             "config" | "-c" | "c" => {
                 //Use the check command when config is called without additional args
                 if args.len() == 1 {
-                    Command::Config(ConfigCommandArg::Check)
+                    Command::Config(ConfigArg::Check)
                 } else if args.len() == 2 {
                     //Parse the config argument command
                     match args[1].to_lowercase().as_str() {
-                        "init" => Command::Config(ConfigCommandArg::Init),
-                        "check" => Command::Config(ConfigCommandArg::Check),
+                        "init" => Command::Config(ConfigArg::Init),
+                        "check" => Command::Config(ConfigArg::Check),
                         _ => Command::Help, //Display help in case of invalid config arg
                     }
                 } else {
+                    //Invalid config argument length
                     Command::Help
                 }
             }
@@ -67,25 +68,37 @@ impl Command {
         }
     }
 
-    pub fn execute(&self) {
+    pub fn execute(&self) -> Result<(), Box<dyn std::error::Error>> {
         match self {
             Command::Help => {
                 println!("Available commands:");
                 println!("  help       - Show this help");
                 println!("  version    - Show version number of the program");
                 println!("  run [ARGS] - Execute the run command with args");
+                Ok(())
             }
             Command::Version => {
                 println!("yalc version {}", YALC_VERSION);
+                Ok(())
             }
-            Command::Config(config_arg) => {
-                println!("config_arg: {:?}", config_arg);
-            }
+            Command::Config(config_arg) => match &config_arg {
+                ConfigArg::Init => {
+                    println!("Executing: Config init");
+                    config::execute_init_config_command()?;
+                    Ok(())
+                }
+                ConfigArg::Check => {
+                    println!("Executing: Config check");
+                    config::execute_check_config_command()?;
+                    Ok(())
+                }
+            },
             Command::Run(args) => {
                 println!("Executing 'run' with the following arguments:");
                 for (i, arg) in args.iter().enumerate() {
                     println!("  Arg {}: {}", i + 1, arg);
                 }
+                Ok(())
             }
         }
     }

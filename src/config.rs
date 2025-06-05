@@ -4,6 +4,10 @@
 //! The config is used to define how a cleanup task is performed.
 //!
 
+pub mod config_commands;
+pub mod toml_parser;
+pub mod toml_writer;
+
 /// Represents the config for an executing of the yalc cleanup
 #[derive(Debug)]
 pub struct Config {

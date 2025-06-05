@@ -11,5 +11,10 @@ fn main() {
 
     //Parse and execute command
     let command = Command::from_args(args);
-    command.execute();
+    let res_command = command.execute();
+
+    //Display the error when the command has failed
+    if let Err(e) = res_command {
+        eprintln!("Error: {}", e);
+    }
 }

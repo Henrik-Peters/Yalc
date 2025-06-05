@@ -2,7 +2,7 @@ use std::fs::{File, metadata};
 use std::io::{self, Error, ErrorKind, Write};
 use std::path::Path;
 
-use crate::constants::DEFAULT_CONFIG_PATH;
+use crate::constants::{DEFAULT_CONFIG_CONTENT, DEFAULT_CONFIG_PATH};
 
 /// This command is called via "yalc config init".
 /// This will create a new default config file.
@@ -28,9 +28,10 @@ fn create_default_config_file(path: &Path) -> Result<(), io::Error> {
     //Create new file handle
     let mut file = File::create(&path)?;
 
-    let content = "abc";
+    let content = DEFAULT_CONFIG_CONTENT;
     file.write_all(content.as_bytes())?;
 
+    //Log the successful write operation
     println!("Successfully written template config file content");
     Ok(())
 }

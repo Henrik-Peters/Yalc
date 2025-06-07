@@ -12,6 +12,8 @@ pub const DEFAULT_CONFIG_CONTENT: &'static str = r#"# Yalc log rotation config
 dry_run = false
 mode = "FileSize"
 
+keep_rotate = 4
+
 file_list = [
     "apple.log",
     "banana.log", 

@@ -2,6 +2,7 @@ use std::fs::{File, metadata};
 use std::io::{self, Error, ErrorKind, Write};
 use std::path::Path;
 
+use crate::config::toml_parser;
 use crate::constants::{DEFAULT_CONFIG_CONTENT, DEFAULT_CONFIG_PATH};
 
 /// This command is called via "yalc config init".
@@ -37,5 +38,12 @@ fn create_default_config_file(path: &Path) -> Result<(), io::Error> {
 }
 
 pub fn execute_check_config_command() -> Result<(), io::Error> {
+    let path = Path::new(DEFAULT_CONFIG_PATH);
+
+    //The config is validated by the load function
+    let _ = toml_parser::load_config(&path)?;
+
+    //Final print that the config is valid
+    println!("Yalc config check: [VALID]");
     Ok(())
 }

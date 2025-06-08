@@ -264,6 +264,26 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_simple_key_value_string() {
+        let input = r#"hello = "world""#;
+        let mut lexer = Lexer::new(input);
+
+        let tokens = vec![
+            Token::Key("hello".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::String("world".to_string())),
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
+    }
+
+    #[test]
     fn test_simple_key_value_integer() {
         let input = "key = 1";
         let mut lexer = Lexer::new(input);
@@ -274,6 +294,75 @@ mod tests {
             Token::Equal,
             Token::Whitespace,
             Token::Value(Value::Integer(1)),
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
+    }
+
+    #[test]
+    fn test_simple_key_value_boolean() {
+        let input = "key = true";
+        let mut lexer = Lexer::new(input);
+
+        let tokens = vec![
+            Token::Key("key".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Bool(true)),
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
+    }
+
+    #[test]
+    fn test_simple_key_value_float() {
+        let input = "key = 12.3";
+        let mut lexer = Lexer::new(input);
+
+        let tokens = vec![
+            Token::Key("key".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Float(12.3)),
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
+    }
+
+    #[test]
+    fn test_simple_multiline() {
+        let input = r#"name = "test"
+age = 30
+"#;
+
+        let mut lexer = Lexer::new(input);
+        let tokens = vec![
+            Token::Key("name".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::String("test".to_string())),
+            Token::Newline,
+            Token::Key("age".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Integer(30)),
+            Token::Newline,
             Token::EOF,
         ];
 

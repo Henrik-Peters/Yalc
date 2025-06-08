@@ -211,7 +211,7 @@ impl Lexer {
         let mut key = first_char.to_string();
 
         while let Some(c) = self.look_ahead_char() {
-            if c.is_alphanumeric() || c == '_' {
+            if c.is_alphanumeric() || c == '_' || c == '.' {
                 //Consume the next char
                 let next_char = self.next_char();
 
@@ -275,7 +275,7 @@ impl Lexer {
         let mut section_name = first_char.to_string();
 
         while let Some(c) = self.look_ahead_char() {
-            if c.is_alphanumeric() || c == '_' {
+            if c.is_alphanumeric() || c == '_' || c == '.' {
                 //Consume the next char
                 let next_char = self.next_char();
 
@@ -627,6 +627,68 @@ price = 0.80
 
         for expected_token in tokens {
             let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
+    }
+
+    #[test]
+    fn test_simple_section_dot_name() {
+        let input = r#"name = "section-dot-test"
+[retention.config]
+key_amount = 123
+"#;
+
+        let mut lexer = Lexer::new(input);
+        let tokens = vec![
+            Token::Key("name".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::String("section-dot-test".to_string())),
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("retention.config".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("key_amount".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Integer(123)),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
+    }
+
+    #[test]
+    fn test_simple_carriage_returns() {
+        let input = "key = 5\r\nhello = \"world\"\r\n";
+
+        let mut lexer = Lexer::new(input);
+        let tokens = vec![
+            Token::Key("key".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Integer(5)),
+            Token::Newline,
+            Token::Key("hello".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::String("world".to_string())),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            println!("{:?}", token);
             assert_eq!(token, expected_token);
         }
     }

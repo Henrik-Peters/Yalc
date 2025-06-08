@@ -23,6 +23,15 @@ pub enum Token {
     /// Represents the right square bracket (`]`) marking the end of a section.
     RBracket,
 
+    /// Represents the left square brackets (`[[`) marking the start of an array.
+    DoubleLBracket,
+
+    /// Represents the right square brackets (`]]`) marking the end of an array.
+    DoubleRBracket,
+
+    /// Header title of a section or array enclosed by square brackets
+    SectionName(String),
+
     /// Whitespace characters like spaces, tabs, or newlines are ignored
     Whitespace,
 
@@ -58,6 +67,9 @@ pub struct Lexer {
 
     /// Equal sign was consumed in current line when true
     equals_consumed: bool,
+
+    /// Square brackets char was consumed in current line when true
+    bracket_consumed: bool,
 }
 
 impl Lexer {
@@ -66,6 +78,7 @@ impl Lexer {
             chars: input.chars().collect(),
             pos: 0,
             equals_consumed: false,
+            bracket_consumed: false,
         }
     }
 
@@ -113,6 +126,7 @@ impl Lexer {
     pub fn next_token(&mut self) -> Token {
         //Get the next char for whitespace check
         let next_char: Option<char> = self.next_char();
+        let look_ahead_char: Option<char> = self.look_ahead_char();
 
         match next_char {
             None => Token::EOF,
@@ -121,13 +135,28 @@ impl Lexer {
                 if c.is_whitespace() {
                     //Handle line breaks which are whitespaces
                     if c == '\n' {
-                        //Reset equals consumed at new line
+                        //Reset consumed chars at new line
                         self.equals_consumed = false;
+                        self.bracket_consumed = false;
                         Token::Newline
                     } else {
                         Token::Whitespace
                     }
                 } else {
+                    //Double brackets
+                    if let Some(ac) = look_ahead_char {
+                        if c == '[' && ac == '[' {
+                            self.bracket_consumed = true;
+                            self.next_char(); //Consume the ahead char
+                            return Token::DoubleLBracket;
+                        }
+
+                        if c == ']' && ac == ']' {
+                            self.next_char(); //Consume the ahead char
+                            return Token::DoubleRBracket;
+                        }
+                    }
+
                     //Handle Non-Whitespace chars
                     match c {
                         '=' => {
@@ -135,8 +164,12 @@ impl Lexer {
                             self.equals_consumed = true;
                             Token::Equal
                         }
-                        ',' => Token::Comma,         // Comma
-                        '[' => Token::LBracket,      // Left bracket
+                        ',' => Token::Comma, // Comma
+                        '[' => {
+                            // Left bracket
+                            self.bracket_consumed = true;
+                            Token::LBracket
+                        }
                         ']' => Token::RBracket,      // Right bracket
                         '"' => self.parse_string(),  // Handle string values
                         '#' => self.parse_comment(), // Handle comments
@@ -151,16 +184,22 @@ impl Lexer {
     /// Parse a section that can be a key or a value
     fn parse_key_or_value(&mut self, first_char: char) -> Token {
         //The value can not be a string - this was handled earlier
-        if !&self.equals_consumed {
-            self.parse_key(first_char)
+        if self.bracket_consumed {
+            self.parse_section_name(first_char)
         } else {
-            self.parse_value(first_char)
+            //Parse non-section headers
+            if !&self.equals_consumed {
+                self.parse_key(first_char)
+            } else {
+                self.parse_value(first_char)
+            }
         }
     }
 
     /// Parse the key token and consume all chars of the key
     fn parse_key(&mut self, first_char: char) -> Token {
         let mut key = first_char.to_string();
+
         while let Some(c) = self.look_ahead_char() {
             if c.is_alphanumeric() || c == '_' {
                 //Consume the next char
@@ -173,6 +212,7 @@ impl Lexer {
                 break; //End of key
             }
         }
+
         Token::Key(key)
     }
 
@@ -220,9 +260,30 @@ impl Lexer {
         }
     }
 
+    /// Parse the section title between square brackets
+    fn parse_section_name(&mut self, first_char: char) -> Token {
+        let mut section_name = first_char.to_string();
+
+        while let Some(c) = self.look_ahead_char() {
+            if c.is_alphanumeric() || c == '_' {
+                //Consume the next char
+                let next_char = self.next_char();
+
+                if let Some(c) = next_char {
+                    section_name.push(c);
+                }
+            } else {
+                break; //End of section name
+            }
+        }
+
+        Token::SectionName(section_name)
+    }
+
     /// Parse values that are identified by string quotes
     fn parse_string(&mut self) -> Token {
         let mut string_value = String::new();
+
         while let Some(c) = self.look_ahead_char() {
             if c == '"' {
                 self.next_char(); //Consume the end of the string char
@@ -236,12 +297,14 @@ impl Lexer {
                 string_value.push(c);
             }
         }
+
         Token::Value(Value::String(string_value))
     }
 
     /// Parse comment lines identified by the #-char
     fn parse_comment(&mut self) -> Token {
         let mut comment_value = String::new();
+
         while let Some(c) = self.look_ahead_char() {
             if c == '\n' {
                 //End of comment at the newline
@@ -255,6 +318,7 @@ impl Lexer {
                 comment_value.push(c); //Collect comment contents
             }
         }
+
         Token::Comment(comment_value)
     }
 }
@@ -445,6 +509,40 @@ file_list = [
             Token::Value(Value::String("comment-test".to_string())),
             Token::Newline,
             Token::Comment(" Text of my comment".to_string()),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
+    }
+
+    #[test]
+    fn test_simple_section() {
+        let input = r#"name = "section-test"
+[retention]
+file_size_mb = 24
+"#;
+
+        let mut lexer = Lexer::new(input);
+        let tokens = vec![
+            Token::Key("name".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::String("section-test".to_string())),
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("retention".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("file_size_mb".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Integer(24)),
             Token::Newline,
             Token::EOF,
         ];

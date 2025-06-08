@@ -85,6 +85,24 @@ impl Lexer {
         }
     }
 
+    /// Similar to next_char() but pos will not be incremented
+    ///
+    /// This function can used to need at the next char that
+    /// will be consumed by the call of next_char() function.
+    ///
+    /// # Returns
+    /// - `Some(char)`: The next character from the input string.
+    /// - `None`: When the end of the string has been reached.
+    ///
+    fn look_ahead_char(&mut self) -> Option<char> {
+        if self.pos < self.chars.len() {
+            let c = self.chars[self.pos];
+            Some(c)
+        } else {
+            None
+        }
+    }
+
     pub fn next_token(&mut self) -> Token {
         //Get the next char for whitespace check
         let next_char: Option<char> = self.next_char();
@@ -124,9 +142,14 @@ impl Lexer {
     /// Parse the key token and consume all chars of the key
     fn parse_key(&mut self, first_char: char) -> Key {
         let mut key = first_char.to_string();
-        while let Some(c) = self.next_char() {
+        while let Some(c) = self.look_ahead_char() {
             if c.is_alphanumeric() || c == '_' {
-                key.push(c);
+                //Consume the next char
+                let next_char = self.next_char();
+
+                if let Some(c) = next_char {
+                    key.push(c);
+                }
             } else {
                 break; //End of key
             }
@@ -136,23 +159,35 @@ impl Lexer {
 
     fn parse_string(&mut self) -> Token {
         let mut string_value = String::new();
-        while let Some(c) = self.next_char() {
+        while let Some(c) = self.look_ahead_char() {
             if c == '"' {
                 break; //End of the string
             }
-            string_value.push(c); //Collect the string contents
+
+            //Consume the next char
+            let next_char = self.next_char();
+
+            if let Some(c) = next_char {
+                string_value.push(c);
+            }
         }
         Token::Value(Value::String(string_value))
     }
 
     fn parse_comment(&mut self) -> Token {
         let mut comment_value = String::new();
-        while let Some(c) = self.next_char() {
+        while let Some(c) = self.look_ahead_char() {
             if c == '\n' {
                 //End of comment at the newline
                 break;
             }
-            comment_value.push(c); //Collect comment contents
+
+            //Consume the next char
+            let next_char = self.next_char();
+
+            if let Some(c) = next_char {
+                comment_value.push(c); //Collect comment contents
+            }
         }
         Token::Comment(comment_value)
     }

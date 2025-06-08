@@ -192,21 +192,23 @@ impl Lexer {
                     //Handle Non-Whitespace chars
                     match c {
                         '=' => {
-                            // Equal sign
+                            //Equal sign
                             self.equals_consumed = true;
                             Token::Equal
                         }
-                        ',' => Token::Comma, // Comma
+                        ',' => Token::Comma,
                         '[' => {
-                            // Left bracket
+                            //Left bracket
                             self.bracket_consumed = true;
                             Token::LBracket
                         }
-                        ']' => Token::RBracket,      // Right bracket
-                        '"' => self.parse_string(),  // Handle string values
-                        '#' => self.parse_comment(), // Handle comments
-                        _ if c.is_alphanumeric() || c == '_' => self.parse_key_or_value(c),
-                        _ => Token::Error("Unknown token".to_string()), // Handle any unexpected characters
+                        ']' => Token::RBracket,      //Right bracket
+                        '"' => self.parse_string(),  //Handle string values
+                        '#' => self.parse_comment(), //Handle comments
+                        _ if c.is_alphanumeric() || c == '_' || c == '.' => {
+                            self.parse_key_or_value(c)
+                        }
+                        _ => Token::Error("Unknown token".to_string()), //Handle any unexpected characters
                     }
                 }
             }
@@ -318,7 +320,7 @@ impl Lexer {
 
         while let Some(c) = self.look_ahead_char() {
             if c == '"' {
-                self.next_char(); //Consume the end of the string char
+                self.next_char(); //Consume the end of the string
                 break; //End of the string
             }
 

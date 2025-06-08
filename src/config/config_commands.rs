@@ -1,3 +1,9 @@
+//! Module for the yalc config command execution
+//!
+//! When a config command should be executed it will be done by this module.
+//! Note that the config module is also used by other non-config commands.
+//! These function should help the user to configure yalc in an easy way.
+//!
 use std::fs::{File, metadata};
 use std::io::{self, Error, ErrorKind, Write};
 use std::path::Path;

@@ -50,8 +50,14 @@ pub enum Value {
 }
 
 pub struct Lexer {
+    /// Vector with all UTF-8 chars for the given input
     chars: Vec<char>,
+
+    /// Index of the next char that will be processed
     pos: usize,
+
+    /// Equal sign was consumed in current line when true
+    equals_consumed: bool,
 }
 
 impl Lexer {
@@ -59,6 +65,7 @@ impl Lexer {
         Lexer {
             chars: input.chars().collect(),
             pos: 0,
+            equals_consumed: false,
         }
     }
 
@@ -127,11 +134,7 @@ impl Lexer {
                         ']' => Token::RBracket,      // Right bracket
                         '"' => self.parse_string(),  // Handle string values
                         '#' => self.parse_comment(), // Handle comments
-                        _ if c.is_alphanumeric() || c == '_' => {
-                            // Handle keys (alphanumeric characters or underscores are valid)
-                            let key = self.parse_key(c);
-                            Token::Key(key) // Return the collected key
-                        }
+                        _ if c.is_alphanumeric() || c == '_' => self.parse_key_or_value(c),
                         _ => Token::Error("Unknown token".to_string()), // Handle any unexpected characters
                     }
                 }
@@ -139,8 +142,18 @@ impl Lexer {
         }
     }
 
+    /// Parse a section that can be a key or a value
+    fn parse_key_or_value(&mut self, first_char: char) -> Token {
+        //The value can not be a string - this was handled earlier
+        if !&self.equals_consumed {
+            self.parse_key(first_char)
+        } else {
+            self.parse_value(first_char)
+        }
+    }
+
     /// Parse the key token and consume all chars of the key
-    fn parse_key(&mut self, first_char: char) -> Key {
+    fn parse_key(&mut self, first_char: char) -> Token {
         let mut key = first_char.to_string();
         while let Some(c) = self.look_ahead_char() {
             if c.is_alphanumeric() || c == '_' {
@@ -154,13 +167,33 @@ impl Lexer {
                 break; //End of key
             }
         }
-        key
+        Token::Key(key)
     }
 
+    /// Parse a value that is not a string value
+    fn parse_value(&mut self, first_char: char) -> Token {
+        //Try to parse the value as bool
+        if first_char == 't' || first_char == 'f' {
+            let res_bool_token = self.try_parse_bool_value(first_char);
+
+            if let Some(bool_token) = res_bool_token {
+                return bool_token;
+            }
+        }
+
+        Token::Value(Value::Integer(4))
+    }
+
+    fn try_parse_bool_value(&mut self, first_char: char) -> Option<Token> {
+        Some(Token::EOF)
+    }
+
+    /// Parse values that are identified by string quotes
     fn parse_string(&mut self) -> Token {
         let mut string_value = String::new();
         while let Some(c) = self.look_ahead_char() {
             if c == '"' {
+                self.next_char(); //Consume the end of the string char
                 break; //End of the string
             }
 
@@ -174,6 +207,7 @@ impl Lexer {
         Token::Value(Value::String(string_value))
     }
 
+    /// Parse comment lines identified by the #-char
     fn parse_comment(&mut self) -> Token {
         let mut comment_value = String::new();
         while let Some(c) = self.look_ahead_char() {

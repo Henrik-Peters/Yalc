@@ -133,6 +133,12 @@ impl Lexer {
         }
     }
 
+    /// Retrieves the next toml token from the input string
+    ///
+    /// This function will iterate over the char sequence of
+    /// the input so runtime will be O(n) where n is the length
+    /// of the input string. Returns EOF token at the end.
+    ///
     pub fn next_token(&mut self) -> Token {
         //Get the next char for whitespace check
         let next_char: Option<char> = self.next_char();
@@ -144,7 +150,23 @@ impl Lexer {
                 //Check if the char is a whitespace
                 if c.is_whitespace() {
                     //Handle line breaks which are whitespaces
-                    if c == '\n' {
+                    let is_linebreak: bool = match look_ahead_char {
+                        None => c == '\n',
+                        Some(ac) => {
+                            //Unix line feed
+                            if c == '\n' {
+                                true
+                            } else if c == '\r' && ac == '\n' {
+                                //Carriage return line feed
+                                self.next_char(); //Consume the ahead char
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                    };
+
+                    if is_linebreak {
                         //Reset consumed chars at new line
                         self.equals_consumed = false;
                         self.bracket_consumed = false;
@@ -316,7 +338,7 @@ impl Lexer {
         let mut comment_value = String::new();
 
         while let Some(c) = self.look_ahead_char() {
-            if c == '\n' {
+            if c == '\n' || c == '\r' {
                 //End of comment at the newline
                 break;
             }

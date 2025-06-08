@@ -121,6 +121,8 @@ impl Lexer {
                 if c.is_whitespace() {
                     //Handle line breaks which are whitespaces
                     if c == '\n' {
+                        //Reset equals consumed at new line
+                        self.equals_consumed = false;
                         Token::Newline
                     } else {
                         Token::Whitespace
@@ -128,7 +130,11 @@ impl Lexer {
                 } else {
                     //Handle Non-Whitespace chars
                     match c {
-                        '=' => Token::Equal,         // Equal sign
+                        '=' => {
+                            // Equal sign
+                            self.equals_consumed = true;
+                            Token::Equal
+                        }
                         ',' => Token::Comma,         // Comma
                         '[' => Token::LBracket,      // Left bracket
                         ']' => Token::RBracket,      // Right bracket
@@ -172,20 +178,46 @@ impl Lexer {
 
     /// Parse a value that is not a string value
     fn parse_value(&mut self, first_char: char) -> Token {
-        //Try to parse the value as bool
-        if first_char == 't' || first_char == 'f' {
-            let res_bool_token = self.try_parse_bool_value(first_char);
+        let mut value_str = first_char.to_string();
 
-            if let Some(bool_token) = res_bool_token {
-                return bool_token;
+        while let Some(c) = self.look_ahead_char() {
+            if c.is_alphanumeric() || c == '.' || c == '_' || c == '-' {
+                // Consume the next character
+                let next_char = self.next_char();
+                if let Some(c) = next_char {
+                    value_str.push(c);
+                }
+            } else {
+                break;
             }
         }
 
-        Token::Value(Value::Integer(4))
+        //Try parsing as bool
+        if let Some(bool_token) = self.try_parse_bool_value(&value_str) {
+            return bool_token;
+        }
+
+        //Try parsing as integer
+        if let Ok(int_val) = value_str.parse::<i64>() {
+            return Token::Value(Value::Integer(int_val));
+        }
+
+        //Try parsing as float
+        if let Ok(float_val) = value_str.parse::<f64>() {
+            return Token::Value(Value::Float(float_val));
+        }
+
+        //If nothing matched, treat it as a error
+        Token::Error("Invalid value data type".to_string())
     }
 
-    fn try_parse_bool_value(&mut self, first_char: char) -> Option<Token> {
-        Some(Token::EOF)
+    /// Try to parse a value as boolean
+    fn try_parse_bool_value(&mut self, value_str: &str) -> Option<Token> {
+        match value_str {
+            "true" => Some(Token::Value(Value::Bool(true))),
+            "false" => Some(Token::Value(Value::Bool(false))),
+            _ => None,
+        }
     }
 
     /// Parse values that are identified by string quotes
@@ -224,5 +256,30 @@ impl Lexer {
             }
         }
         Token::Comment(comment_value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_simple_key_value_integer() {
+        let input = "key = 1";
+        let mut lexer = Lexer::new(input);
+
+        let tokens = vec![
+            Token::Key("key".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Integer(1)),
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
     }
 }

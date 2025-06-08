@@ -371,4 +371,87 @@ age = 30
             assert_eq!(token, expected_token);
         }
     }
+
+    #[test]
+    fn test_simple_list() {
+        let input = r#"name = "list-test"
+file_list = [
+    "apple",
+    "banana",
+    "cherry"
+]
+"#;
+
+        let mut lexer = Lexer::new(input);
+        let tokens = vec![
+            Token::Key("name".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::String("list-test".to_string())),
+            Token::Newline,
+            Token::Key("file_list".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::LBracket,
+            //List element [0]
+            Token::Newline,
+            Token::Whitespace,
+            Token::Whitespace,
+            Token::Whitespace,
+            Token::Whitespace,
+            Token::Value(Value::String("apple".to_string())),
+            Token::Comma,
+            //List element [1]
+            Token::Newline,
+            Token::Whitespace,
+            Token::Whitespace,
+            Token::Whitespace,
+            Token::Whitespace,
+            Token::Value(Value::String("banana".to_string())),
+            Token::Comma,
+            //List element [2]
+            Token::Newline,
+            Token::Whitespace,
+            Token::Whitespace,
+            Token::Whitespace,
+            Token::Whitespace,
+            Token::Value(Value::String("cherry".to_string())),
+            Token::Newline,
+            Token::RBracket,
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
+    }
+
+    #[test]
+    fn test_simple_comment_line() {
+        let input = r#"name = "comment-test"
+# Text of my comment
+"#;
+
+        let mut lexer = Lexer::new(input);
+        let tokens = vec![
+            Token::Key("name".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::String("comment-test".to_string())),
+            Token::Newline,
+            Token::Comment(" Text of my comment".to_string()),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
+    }
 }

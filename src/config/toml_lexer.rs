@@ -1,5 +1,15 @@
-/// Strings are used to represents TOML keys
+//! Module for the yalc toml lexer logic
+//!
+//! Provides logic for parsing toml tokens from a UTF-8 char sequence.
+//! The tokens already contain some higher logic like key-value separation.
+//! Note that this parser implementation does not cover all toml features.
+//!
+
+/// Strings are used to represent TOML keys
 type Key = String;
+
+/// String are used to represent TOML section titles
+type SectionName = String;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -30,7 +40,7 @@ pub enum Token {
     DoubleRBracket,
 
     /// Header title of a section or array enclosed by square brackets
-    SectionName(String),
+    SectionName(SectionName),
 
     /// Whitespace characters like spaces, tabs, or newlines are ignored
     Whitespace,
@@ -39,11 +49,11 @@ pub enum Token {
     /// Comments in TOML start with a hash symbol (`#`) and continue to the end of the line.
     Comment(String),
 
-    /// Represents the end of the file (EOF) token.
-    EOF,
-
     /// Represents a newline character.
     Newline,
+
+    /// Represents the end of the file (EOF) token.
+    EOF,
 
     /// Represents an error during tokenization.
     /// The associated `String` contains the error message.
@@ -543,6 +553,156 @@ file_size_mb = 24
             Token::Equal,
             Token::Whitespace,
             Token::Value(Value::Integer(24)),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
+    }
+
+    #[test]
+    fn test_simple_array_section() {
+        let input = r#"key = "array-table-test"
+
+[[products]]
+name = "Apple"
+price = 1.20
+
+[[products]]
+name = "Banana"
+price = 0.80
+"#;
+
+        let mut lexer = Lexer::new(input);
+        let tokens = vec![
+            Token::Key("key".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::String("array-table-test".to_string())),
+            Token::Newline,
+            Token::Newline,
+            //Array section [0]
+            Token::DoubleLBracket,
+            Token::SectionName("products".to_string()),
+            Token::DoubleRBracket,
+            Token::Newline,
+            // Items of element [0]
+            Token::Key("name".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::String("Apple".to_string())),
+            Token::Newline,
+            Token::Key("price".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Float(1.20)),
+            Token::Newline,
+            Token::Newline,
+            //Array section [1]
+            Token::DoubleLBracket,
+            Token::SectionName("products".to_string()),
+            Token::DoubleRBracket,
+            Token::Newline,
+            // Items of element [0]
+            Token::Key("name".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::String("Banana".to_string())),
+            Token::Newline,
+            Token::Key("price".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Float(0.80)),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
+    }
+
+    #[test]
+    fn test_complex_combined_tokens() {
+        let input = r#"# Yalc log rotation config
+dry_run = false
+mode = "FileSize"
+
+keep_rotate = 7
+
+file_list = ["apple.log", "banana.log", "cherry.log"]
+
+[retention]
+file_size_mb = 35
+last_write_h = 7
+"#;
+
+        let mut lexer = Lexer::new(input);
+        let tokens = vec![
+            Token::Comment(" Yalc log rotation config".to_string()),
+            Token::Newline,
+            Token::Key("dry_run".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Bool(false)),
+            Token::Newline,
+            Token::Key("mode".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::String("FileSize".to_string())),
+            Token::Newline,
+            Token::Newline,
+            Token::Key("keep_rotate".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Integer(7)),
+            Token::Newline,
+            Token::Newline,
+            Token::Key("file_list".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::LBracket,
+            //List element [0]
+            Token::Value(Value::String("apple.log".to_string())),
+            Token::Comma,
+            //List element [1]
+            Token::Whitespace,
+            Token::Value(Value::String("banana.log".to_string())),
+            Token::Comma,
+            //List element [2]
+            Token::Whitespace,
+            Token::Value(Value::String("cherry.log".to_string())),
+            Token::RBracket,
+            Token::Newline,
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("retention".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("file_size_mb".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Integer(35)),
+            Token::Newline,
+            Token::Key("last_write_h".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Integer(7)),
             Token::Newline,
             Token::EOF,
         ];

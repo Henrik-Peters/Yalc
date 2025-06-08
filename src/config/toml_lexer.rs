@@ -88,7 +88,72 @@ impl Lexer {
     pub fn next_token(&mut self) -> Token {
         //Get the next char for whitespace check
         let next_char: Option<char> = self.next_char();
-        println!("{:?}", self.chars);
-        Token::EOF
+
+        match next_char {
+            None => Token::EOF,
+            Some(c) => {
+                //Check if the char is a whitespace
+                if c.is_whitespace() {
+                    //Handle line breaks which are whitespaces
+                    if c == '\n' {
+                        Token::Newline
+                    } else {
+                        Token::Whitespace
+                    }
+                } else {
+                    //Handle Non-Whitespace chars
+                    match c {
+                        '=' => Token::Equal,         // Equal sign
+                        ',' => Token::Comma,         // Comma
+                        '[' => Token::LBracket,      // Left bracket
+                        ']' => Token::RBracket,      // Right bracket
+                        '"' => self.parse_string(),  // Handle string values
+                        '#' => self.parse_comment(), // Handle comments
+                        _ if c.is_alphanumeric() || c == '_' => {
+                            // Handle keys (alphanumeric characters or underscores are valid)
+                            let key = self.parse_key(c);
+                            Token::Key(key) // Return the collected key
+                        }
+                        _ => Token::Error("Unknown token".to_string()), // Handle any unexpected characters
+                    }
+                }
+            }
+        }
+    }
+
+    /// Parse the key token and consume all chars of the key
+    fn parse_key(&mut self, first_char: char) -> Key {
+        let mut key = first_char.to_string();
+        while let Some(c) = self.next_char() {
+            if c.is_alphanumeric() || c == '_' {
+                key.push(c);
+            } else {
+                break; //End of key
+            }
+        }
+        key
+    }
+
+    fn parse_string(&mut self) -> Token {
+        let mut string_value = String::new();
+        while let Some(c) = self.next_char() {
+            if c == '"' {
+                break; //End of the string
+            }
+            string_value.push(c); //Collect the string contents
+        }
+        Token::Value(Value::String(string_value))
+    }
+
+    fn parse_comment(&mut self) -> Token {
+        let mut comment_value = String::new();
+        while let Some(c) = self.next_char() {
+            if c == '\n' {
+                //End of comment at the newline
+                break;
+            }
+            comment_value.push(c); //Collect comment contents
+        }
+        Token::Comment(comment_value)
     }
 }

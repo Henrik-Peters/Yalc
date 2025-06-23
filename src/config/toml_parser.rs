@@ -13,26 +13,41 @@ use crate::config::toml_lexer::Token;
 /// The config file will be decoded with UTF-8.
 pub fn load_config(path: &Path) -> Result<Config, io::Error> {
     println!("Loading config from: {}", &path.display());
-    let config_content: String = load_config_file_lines(&path)?;
+    let config_content: String = load_config_file_content(&path)?;
 
+    //Collect all tokens and store in a vector
     let mut lexer = Lexer::new(&config_content);
+    let mut tokens: Vec<Token> = Vec::new();
 
     loop {
         let token = lexer.next_token();
-        println!("{:?}", token);
+        tokens.push(token);
 
-        if token == Token::EOF {
+        if tokens[tokens.len() - 1] == Token::EOF {
             break; //Exit loop when EOF is reached
+        }
+    }
+
+    //Perform the parsing of the token list
+    let mut parser = Parser::new(tokens);
+
+    loop {
+        let token = parser.next_token();
+
+        match token {
+            Some(token) => println!("{:?}", token),
+            None => {
+                break; //Exit loop when EOF is reached
+            }
         }
     }
 
     Err(io::Error::new(ErrorKind::Other, "Not implemented"))
 }
 
-/// Load the config file lines. Each line will a string in the result vec.
-/// This function assumes that LF ("\n") or CRLF ("\r\n") is used for line separation.
-/// For string decoding UTF-8 is used.
-fn load_config_file_lines(path: &Path) -> Result<String, io::Error> {
+/// Load the config file content. Will return an error if the file does not exist.
+/// This function assumes that the content of the file is encoded with UTF-8.
+fn load_config_file_content(path: &Path) -> Result<String, io::Error> {
     let content: String = fs::read_to_string(path)?;
     Ok(content)
 }

@@ -235,3 +235,67 @@ impl Parser {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_empty_tokens() {
+        let tokens = vec![Token::Whitespace, Token::EOF];
+
+        let parser = Parser::new(tokens);
+        let table: TopLevelTable = parser.parse().unwrap();
+
+        assert!(table.is_empty());
+    }
+
+    #[test]
+    fn test_root_single_key_value() {
+        let tokens = vec![
+            Token::Key("hello".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::String("world".to_string())),
+            Token::EOF,
+        ];
+
+        let parser = Parser::new(tokens);
+        let table: TopLevelTable = parser.parse().unwrap();
+
+        let mut exp_table: TopLevelTable = HashMap::new();
+        exp_table.insert("hello".to_string(), Value::String("world".to_string()));
+
+        assert_eq!(table, exp_table);
+    }
+
+    #[test]
+    fn test_root_multi_key_value() {
+        let tokens = vec![
+            Token::Key("keep_rotate".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(3)),
+            Token::Newline,
+            Token::Key("dry_run".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Bool(true)),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        let parser = Parser::new(tokens);
+        let table: TopLevelTable = parser.parse().unwrap();
+
+        let mut exp_table: TopLevelTable = HashMap::new();
+        exp_table.insert("keep_rotate".to_string(), Value::Integer(3));
+        exp_table.insert("dry_run".to_string(), Value::Bool(true));
+
+        assert_eq!(table, exp_table);
+    }
+}

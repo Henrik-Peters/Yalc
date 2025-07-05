@@ -99,6 +99,17 @@ impl From<LValue> for Value {
     }
 }
 
+impl From<&LValue> for Value {
+    fn from(value: &LValue) -> Self {
+        match value {
+            LValue::Bool(v) => Value::Bool(*v),
+            LValue::String(v) => Value::String(v.clone()),
+            LValue::Integer(v) => Value::Integer(*v),
+            LValue::Float(v) => Value::Float(*v),
+        }
+    }
+}
+
 pub struct Parser {
     /// Vector with all toml tokens provided by the lexer
     tokens: Vec<Token>,
@@ -220,11 +231,11 @@ impl Parser {
 
     fn insert_into_table(table: &mut Table, key: &Key, value: &LValue) -> Result<(), io::Error> {
         //Get the corresponding entry in the map for in-place manipulation
-        match table.entry(*key) {
+        match table.entry(key.clone()) {
             Entry::Vacant(entry) => {
-                entry.insert(*value.into());
+                entry.insert(value.into());
             }
-            Entry::Occupied(mut entry) => {
+            Entry::Occupied(mut _entry) => {
                 return Err(io::Error::new(
                     ErrorKind::InvalidData,
                     format!("Duplicate toml key: {}", key),

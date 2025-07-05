@@ -1,13 +1,15 @@
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fs;
 use std::io;
 use std::io::ErrorKind;
 use std::path::Path;
 
 use crate::config::Config;
-use crate::config::toml_lexer;
 use crate::config::toml_lexer::Lexer;
 use crate::config::toml_lexer::Token;
+
+use crate::config::toml_lexer::Value as LValue;
 
 /// Load the config file from disk and parse the config.
 /// This function will also validate the config before parsing.
@@ -84,6 +86,17 @@ pub enum Value {
 
     /// Represents a toml collection of key-value pairs
     Table(Table),
+}
+
+impl From<LValue> for Value {
+    fn from(value: LValue) -> Self {
+        match value {
+            LValue::Bool(v) => Value::Bool(v),
+            LValue::String(v) => Value::String(v),
+            LValue::Integer(v) => Value::Integer(v),
+            LValue::Float(v) => Value::Float(v),
+        }
+    }
 }
 
 pub struct Parser {
@@ -170,7 +183,7 @@ impl Parser {
     }
 
     /// Return an error when the next token is not a value token
-    fn expect_value_token(&mut self) -> Result<&toml_lexer::Value, io::Error> {
+    fn expect_value_token(&mut self) -> Result<&LValue, io::Error> {
         let next_token = self.next_significant_token();
 
         if let Some(Token::Value(v)) = next_token {
@@ -193,6 +206,9 @@ impl Parser {
                     //After a key there must an equal and value token
                     self.expect_token(Token::Equal)?;
                     let value = self.expect_value_token()?;
+
+                    //Insert into the correct table
+                    Self::insert_into_table(&mut current_context, &key, &value)?;
                 }
                 Token::EOF => break,
                 _ => continue, //Ignore comments/whitespace
@@ -200,5 +216,22 @@ impl Parser {
         }
 
         Ok(root)
+    }
+
+    fn insert_into_table(table: &mut Table, key: &Key, value: &LValue) -> Result<(), io::Error> {
+        //Get the corresponding entry in the map for in-place manipulation
+        match table.entry(*key) {
+            Entry::Vacant(entry) => {
+                entry.insert(*value.into());
+            }
+            Entry::Occupied(mut entry) => {
+                return Err(io::Error::new(
+                    ErrorKind::InvalidData,
+                    format!("Duplicate toml key: {}", key),
+                ));
+            }
+        };
+
+        Ok(())
     }
 }

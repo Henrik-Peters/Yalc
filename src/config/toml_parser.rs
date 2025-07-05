@@ -120,4 +120,59 @@ impl Parser {
             None
         }
     }
+
+    /// Retrieves the next token that is relevant for parsing
+    ///
+    /// This function internally calls the 'next_token' function
+    /// to get the next token and will then filter out irrelevant tokens.
+    ///
+    fn next_significant_token(&mut self) -> Option<&Token> {
+        while let Some(tok) = self.next_token() {
+            match tok {
+                Token::Whitespace | Token::Newline | Token::Comment(_) => continue,
+                _ => return Some(&tok),
+            }
+        }
+        None
+    }
+
+    /// Return an error when the next token is not equal to the expected_token
+    fn expect_token(&mut self, expected_token: Token) -> Result<&Token, io::Error> {
+        if let Some(tok) = self.next_significant_token() {
+            if *tok == expected_token {
+                Ok(tok)
+            } else {
+                Err(io::Error::new(
+                    ErrorKind::InvalidData,
+                    format!(
+                        "Expected next toml token: {:?}, got {:?}",
+                        expected_token, tok
+                    ),
+                ))
+            }
+        } else {
+            Err(io::Error::new(
+                ErrorKind::UnexpectedEof,
+                format!(
+                    "Expected next toml token {:?}, but no token found",
+                    expected_token
+                ),
+            ))
+        }
+    }
+
+    pub fn parse(&mut self) -> Result<TopLevelTable, io::Error> {
+        let mut root: TopLevelTable = HashMap::new();
+        let mut current_context: &mut Table = &mut root;
+
+        while let Some(token) = self.next_significant_token() {
+            match token {
+                Token::Key(key) => {}
+                Token::EOF => break,
+                _ => continue, //Ignore comments/whitespace
+            }
+        }
+
+        Ok(root)
+    }
 }

@@ -130,10 +130,17 @@ impl Parser {
         while let Some(tok) = self.next_token() {
             match tok {
                 Token::Whitespace | Token::Newline | Token::Comment(_) => continue,
-                _ => return Some(&tok),
+                _ => break,
             }
         }
-        None
+
+        //Get the reference of the current token
+        if self.pos < self.tokens.len() {
+            let cur_token = &self.tokens[self.pos];
+            Some(cur_token)
+        } else {
+            None
+        }
     }
 
     /// Return an error when the next token is not equal to the expected_token

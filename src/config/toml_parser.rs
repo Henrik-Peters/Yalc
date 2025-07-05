@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::fs;
@@ -32,18 +33,10 @@ pub fn load_config(path: &Path) -> Result<Config, io::Error> {
     }
 
     //Perform the parsing of the token list
-    let mut parser = Parser::new(tokens);
+    let parser = Parser::new(tokens);
+    let table: TopLevelTable = parser.parse()?;
 
-    loop {
-        let token = parser.next_token();
-
-        match token {
-            Some(token) => println!("{:?}", token),
-            None => {
-                break; //Exit loop when EOF is reached
-            }
-        }
-    }
+    println!("{:?}", table);
 
     Err(io::Error::new(ErrorKind::Other, "Not implemented"))
 }
@@ -115,14 +108,14 @@ pub struct Parser {
     tokens: Vec<Token>,
 
     /// Index of the next token that will be processed
-    pos: usize,
+    pos: RefCell<usize>,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser {
             tokens: tokens,
-            pos: 0,
+            pos: RefCell::new(0),
         }
     }
 
@@ -136,10 +129,12 @@ impl Parser {
     /// - `Some(&Token)`: The next token from the token list.
     /// - `None`: When the end of the token list has been reached.
     ///
-    fn next_token(&mut self) -> Option<&Token> {
-        if self.pos < self.tokens.len() {
-            let next_token = &self.tokens[self.pos];
-            self.pos += 1;
+    fn next_token(&self) -> Option<&Token> {
+        let mut pos = self.pos.borrow_mut();
+
+        if *pos < self.tokens.len() {
+            let next_token = &self.tokens[*pos];
+            *pos += 1;
             Some(next_token)
         } else {
             None
@@ -151,25 +146,19 @@ impl Parser {
     /// This function internally calls the 'next_token' function
     /// to get the next token and will then filter out irrelevant tokens.
     ///
-    fn next_significant_token(&mut self) -> Option<&Token> {
+    fn next_significant_token(&self) -> Option<&Token> {
         while let Some(tok) = self.next_token() {
             match tok {
                 Token::Whitespace | Token::Newline | Token::Comment(_) => continue,
-                _ => break,
+                _ => return Some(tok),
             }
         }
 
-        //Get the reference of the current token
-        if self.pos < self.tokens.len() {
-            let cur_token = &self.tokens[self.pos];
-            Some(cur_token)
-        } else {
-            None
-        }
+        None
     }
 
     /// Return an error when the next token is not equal to the expected_token
-    fn expect_token(&mut self, expected_token: Token) -> Result<&Token, io::Error> {
+    fn expect_token(&self, expected_token: Token) -> Result<&Token, io::Error> {
         if let Some(tok) = self.next_significant_token() {
             if *tok == expected_token {
                 Ok(tok)
@@ -194,7 +183,7 @@ impl Parser {
     }
 
     /// Return an error when the next token is not a value token
-    fn expect_value_token(&mut self) -> Result<&LValue, io::Error> {
+    fn expect_value_token(&self) -> Result<&LValue, io::Error> {
         let next_token = self.next_significant_token();
 
         if let Some(Token::Value(v)) = next_token {
@@ -207,7 +196,7 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<TopLevelTable, io::Error> {
+    pub fn parse(&self) -> Result<TopLevelTable, io::Error> {
         let mut root: TopLevelTable = HashMap::new();
         let mut current_context: &mut Table = &mut root;
 

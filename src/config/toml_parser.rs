@@ -5,6 +5,7 @@ use std::io::ErrorKind;
 use std::path::Path;
 
 use crate::config::Config;
+use crate::config::toml_lexer;
 use crate::config::toml_lexer::Lexer;
 use crate::config::toml_lexer::Token;
 
@@ -168,13 +169,31 @@ impl Parser {
         }
     }
 
+    /// Return an error when the next token is not a value token
+    fn expect_value_token(&mut self) -> Result<&toml_lexer::Value, io::Error> {
+        let next_token = self.next_significant_token();
+
+        if let Some(Token::Value(v)) = next_token {
+            Ok(v)
+        } else {
+            Err(io::Error::new(
+                ErrorKind::InvalidData,
+                format!("Expected next toml token: Value, got {:?}", next_token),
+            ))
+        }
+    }
+
     pub fn parse(&mut self) -> Result<TopLevelTable, io::Error> {
         let mut root: TopLevelTable = HashMap::new();
         let mut current_context: &mut Table = &mut root;
 
         while let Some(token) = self.next_significant_token() {
             match token {
-                Token::Key(key) => {}
+                Token::Key(key) => {
+                    //After a key there must an equal and value token
+                    self.expect_token(Token::Equal)?;
+                    let value = self.expect_value_token()?;
+                }
                 Token::EOF => break,
                 _ => continue, //Ignore comments/whitespace
             }

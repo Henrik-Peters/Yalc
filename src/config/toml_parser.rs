@@ -256,8 +256,8 @@ impl Parser {
                     match self.look_ahead_significant_token() {
                         None => {
                             return Err(io::Error::new(
-                                ErrorKind::InvalidData,
-                                format!("Missing value after equal token at key: {}", key),
+                                ErrorKind::UnexpectedEof,
+                                format!("Unexpected Eof after equal token at key: {}", key),
                             ));
                         }
                         Some(next_token) => {
@@ -407,6 +407,54 @@ mod tests {
         let mut exp_table: TopLevelTable = HashMap::new();
         exp_table.insert("keep_rotate".to_string(), Value::Integer(3));
         exp_table.insert("dry_run".to_string(), Value::Bool(true));
+
+        assert_eq!(table, exp_table);
+    }
+
+    #[test]
+    fn test_root_value_list() {
+        let tokens = vec![
+            Token::Key("keep_rotate".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(0)),
+            Token::Newline,
+            Token::Key("file_list".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::LBracket,
+            Token::Newline,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(1)),
+            Token::Comma,
+            Token::Newline,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(2)),
+            Token::Comma,
+            Token::Newline,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(3)),
+            Token::Newline,
+            Token::RBracket,
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        let parser = Parser::new(tokens);
+        let table: TopLevelTable = parser.parse().unwrap();
+
+        let mut exp_table: TopLevelTable = HashMap::new();
+        exp_table.insert("keep_rotate".to_string(), Value::Integer(0));
+        exp_table.insert(
+            "file_list".to_string(),
+            Value::Array(vec![
+                Value::Integer(1),
+                Value::Integer(2),
+                Value::Integer(3),
+            ]),
+        );
 
         assert_eq!(table, exp_table);
     }

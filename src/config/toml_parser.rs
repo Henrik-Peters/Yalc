@@ -148,13 +148,20 @@ impl Parser {
     ///
     fn next_significant_token(&self) -> Option<&Token> {
         while let Some(tok) = self.next_token() {
-            match tok {
-                Token::Whitespace | Token::Newline | Token::Comment(_) => continue,
-                _ => return Some(tok),
+            if self.token_is_significant(&tok) {
+                return Some(tok);
             }
         }
 
         None
+    }
+
+    /// Returns true when the token is a significant token
+    fn token_is_significant(&self, tok: &Token) -> bool {
+        match tok {
+            Token::Whitespace | Token::Newline | Token::Comment(_) => false,
+            _ => true,
+        }
     }
 
     /// Look at the next significant token without increment the pos cursor
@@ -164,7 +171,7 @@ impl Parser {
 
         while let Some(tok) = self.tokens.get(idx_look_ahead) {
             match tok {
-                Token::Whitespace | Token::Newline | Token::Comment(_) => {
+                tok if self.token_is_significant(&tok) => {
                     //Skip irrelevant tokens
                     idx_look_ahead += 1;
                 }
@@ -276,7 +283,6 @@ impl Parser {
                 Token::Value(v) => {
                     //Convert the LValue into a value
                     values.push(v.into());
-                    println!("values: {:?}", values);
                 }
                 Token::Comma => {
                     //Separator for the list elements

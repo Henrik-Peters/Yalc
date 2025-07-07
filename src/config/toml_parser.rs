@@ -157,6 +157,27 @@ impl Parser {
         None
     }
 
+    /// Look at the next significant token without increment the pos cursor
+    fn look_ahead_significant_token(&self) -> Option<&Token> {
+        let cur_pos = self.pos.borrow();
+        let mut idx_look_ahead: usize = *cur_pos + 1;
+
+        while let Some(tok) = self.tokens.get(idx_look_ahead) {
+            match tok {
+                Token::Whitespace | Token::Newline | Token::Comment(_) => {
+                    //Skip irrelevant tokens
+                    idx_look_ahead += 1;
+                }
+                _ => {
+                    //We found a significant token
+                    return Some(tok);
+                }
+            }
+        }
+
+        None
+    }
+
     /// Return an error when the next token is not equal to the expected_token
     fn expect_token(&self, expected_token: Token) -> Result<&Token, io::Error> {
         if let Some(tok) = self.next_significant_token() {
@@ -209,6 +230,21 @@ impl Parser {
 
                     //Insert into the correct table
                     Self::insert_into_table(&mut current_context, &key, &value)?;
+                }
+                Token::LBracket => {
+                    //We can have a left bracket of a value array (list) or a left bracket of a section name
+                    let look_ahead_token = self.look_ahead_significant_token();
+
+                    match look_ahead_token {
+                        None => {
+                            //A left bracket should always have a following token
+                            return Err(io::Error::new(
+                                ErrorKind::UnexpectedEof,
+                                format!("Expected follow-up token after left square bracket"),
+                            ));
+                        }
+                        Some(next_token) => {}
+                    }
                 }
                 Token::EOF => break,
                 _ => continue, //Ignore comments/whitespace

@@ -226,25 +226,36 @@ impl Parser {
                 Token::Key(key) => {
                     //After a key there must an equal and value token
                     self.expect_token(Token::Equal)?;
-                    let value = self.expect_value_token()?;
 
-                    //Insert into the correct table
-                    Self::insert_into_table(&mut current_context, &key, &value)?;
+                    //Perform lookahead because we can have a single or list of values
+                    match self.look_ahead_significant_token() {
+                        None => {
+                            return Err(io::Error::new(
+                                ErrorKind::InvalidData,
+                                format!("Missing value after equal token at key: {}", key),
+                            ));
+                        }
+                        Some(next_token) => {
+                            //The value is a list when the next token is a left square bracket
+                            let is_value_list: bool = *next_token == Token::LBracket;
+
+                            if !is_value_list {
+                                //Expect a single value
+                                let value = self.expect_value_token()?;
+
+                                //Insert into the correct table
+                                Self::insert_into_table(&mut current_context, &key, value.into())?;
+                            } else {
+                                //Expect a list of values and insert them into the table
+                                self.parse_value_list(&mut current_context, &key)?;
+                            }
+                        }
+                    }
                 }
                 Token::LBracket => {
                     //We can have a left bracket of a value array (list) or a left bracket of a section name
-                    let look_ahead_token = self.look_ahead_significant_token();
-
-                    match look_ahead_token {
-                        None => {
-                            //A left bracket should always have a following token
-                            return Err(io::Error::new(
-                                ErrorKind::UnexpectedEof,
-                                format!("Expected follow-up token after left square bracket"),
-                            ));
-                        }
-                        Some(next_token) => {}
-                    }
+                    //But the value of arrays is handled by the "Key"-Case above - so it must be a section name
+                    let section_token = self.expect_token(Token::SectionName())?;
                 }
                 Token::EOF => break,
                 _ => continue, //Ignore comments/whitespace
@@ -254,11 +265,47 @@ impl Parser {
         Ok(root)
     }
 
-    fn insert_into_table(table: &mut Table, key: &Key, value: &LValue) -> Result<(), io::Error> {
+    /// Parse a list of values and insert them into the table - assumes the next token is LBracket
+    fn parse_value_list(&self, current_context: &mut Table, key: &Key) -> Result<(), io::Error> {
+        //A value list must start with a left bracket
+        self.expect_token(Token::LBracket)?;
+        let mut values: Vec<Value> = Vec::new();
+
+        while let Some(token) = self.next_significant_token() {
+            match token {
+                Token::Value(v) => {
+                    //Convert the LValue into a value
+                    values.push(v.into());
+                    println!("values: {:?}", values);
+                }
+                Token::Comma => {
+                    //Separator for the list elements
+                }
+                Token::RBracket => {
+                    //The list is closed
+
+                    let list_value: Value = Value::Array(values);
+                    Self::insert_into_table(current_context, &key, list_value)?;
+
+                    return Ok(());
+                }
+
+                _ => break,
+            }
+        }
+
+        //A value list must end with with RBracket
+        return Err(io::Error::new(
+            ErrorKind::UnexpectedEof,
+            format!("Expected RBracket token to close a value list"),
+        ));
+    }
+
+    fn insert_into_table(table: &mut Table, key: &Key, value: Value) -> Result<(), io::Error> {
         //Get the corresponding entry in the map for in-place manipulation
         match table.entry(key.clone()) {
             Entry::Vacant(entry) => {
-                entry.insert(value.into());
+                entry.insert(value);
             }
             Entry::Occupied(mut _entry) => {
                 return Err(io::Error::new(

@@ -149,7 +149,7 @@ impl Parser {
     ///
     fn next_significant_token(&self) -> Option<&Token> {
         while let Some(tok) = self.next_token() {
-            if self.token_is_significant(&tok) {
+            if Self::token_is_significant(&tok) {
                 return Some(tok);
             }
         }
@@ -158,7 +158,7 @@ impl Parser {
     }
 
     /// Returns true when the token is a significant token
-    fn token_is_significant(&self, tok: &Token) -> bool {
+    fn token_is_significant(tok: &Token) -> bool {
         match tok {
             Token::Whitespace | Token::Newline | Token::Comment(_) => false,
             _ => true,
@@ -172,7 +172,7 @@ impl Parser {
 
         while let Some(tok) = self.tokens.get(idx_look_ahead) {
             match tok {
-                tok if !self.token_is_significant(&tok) => {
+                tok if !Self::token_is_significant(&tok) => {
                     //Skip irrelevant tokens
                     idx_look_ahead += 1;
                 }
@@ -262,7 +262,6 @@ impl Parser {
                         }
                         Some(next_token) => {
                             //The value is a list when the next token is a left square bracket
-                            println!("next_token: {:?}", next_token);
                             let is_value_list: bool = *next_token == Token::LBracket;
 
                             if !is_value_list {
@@ -283,7 +282,28 @@ impl Parser {
                     //But the value of arrays is handled by the "Key"-Case above - so it must be a section name
                     let section_name = self.expect_section_name_token()?;
 
-                    //Check if a table for the section name exists or create a new one
+                    //Check if a table for the section name already exists
+                    let table_lookup = Self::lookup_table_value(&root, &section_name);
+
+                    //Use the table lookup reference or create a new table
+                    let section_table: &Table = match table_lookup {
+                        Some(table) => table,
+                        None => {
+                            //Create a new table value
+                            let table_value: Value = Value::Table(HashMap::new());
+
+                            Self::insert_into_table(
+                                &mut current_context,
+                                &section_name,
+                                table_value,
+                            )?;
+
+                            &table_value
+                        }
+                    };
+
+                    //Set the context to the section table
+                    current_context = section_table;
 
                     //Expect closing bracket after the section name
                     self.expect_token(Token::RBracket)?;
@@ -313,7 +333,6 @@ impl Parser {
                 }
                 Token::RBracket => {
                     //The list is closed
-
                     let list_value: Value = Value::Array(values);
                     Self::insert_into_table(current_context, &key, list_value)?;
 
@@ -346,6 +365,17 @@ impl Parser {
         };
 
         Ok(())
+    }
+
+    /// Perform a lookup of a table value via a full key name from the root
+    fn lookup_table_value<'a>(root: &'a TopLevelTable, key: &Key) -> Option<&'a Table> {
+        //Check if the value is table
+        if let Some(Value::Table(t)) = root.get(key) {
+            Some(t)
+        } else {
+            //The value is not a table or does not exist
+            None
+        }
     }
 }
 

@@ -6,10 +6,10 @@
 //!
 
 /// Strings are used to represent TOML keys
-type Key = String;
+pub type Key = String;
 
 /// String are used to represent TOML section titles
-type SectionName = String;
+pub type SectionName = String;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {

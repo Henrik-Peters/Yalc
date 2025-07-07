@@ -8,6 +8,7 @@ use std::path::Path;
 
 use crate::config::Config;
 use crate::config::toml_lexer::Lexer;
+use crate::config::toml_lexer::SectionName;
 use crate::config::toml_lexer::Token;
 
 use crate::config::toml_lexer::Value as LValue;
@@ -224,6 +225,23 @@ impl Parser {
         }
     }
 
+    /// Return an error when the next token is not a section name token
+    fn expect_section_name_token(&self) -> Result<&SectionName, io::Error> {
+        let next_token = self.next_significant_token();
+
+        if let Some(Token::SectionName(s)) = next_token {
+            Ok(s)
+        } else {
+            Err(io::Error::new(
+                ErrorKind::InvalidData,
+                format!(
+                    "Expected next toml token: SectionName, got {:?}",
+                    next_token
+                ),
+            ))
+        }
+    }
+
     pub fn parse(&self) -> Result<TopLevelTable, io::Error> {
         let mut root: TopLevelTable = HashMap::new();
         let mut current_context: &mut Table = &mut root;
@@ -262,7 +280,12 @@ impl Parser {
                 Token::LBracket => {
                     //We can have a left bracket of a value array (list) or a left bracket of a section name
                     //But the value of arrays is handled by the "Key"-Case above - so it must be a section name
-                    let section_token = self.expect_token(Token::SectionName())?;
+                    let section_name = self.expect_section_name_token()?;
+
+                    //Check if a table for the section name exists or create a new one
+
+                    //Expect closing bracket after the section name
+                    self.expect_token(Token::RBracket)?;
                 }
                 Token::EOF => break,
                 _ => continue, //Ignore comments/whitespace

@@ -172,7 +172,7 @@ impl Parser {
 
         while let Some(tok) = self.tokens.get(idx_look_ahead) {
             match tok {
-                tok if self.token_is_significant(&tok) => {
+                tok if !self.token_is_significant(&tok) => {
                     //Skip irrelevant tokens
                     idx_look_ahead += 1;
                 }
@@ -262,6 +262,7 @@ impl Parser {
                         }
                         Some(next_token) => {
                             //The value is a list when the next token is a left square bracket
+                            println!("next_token: {:?}", next_token);
                             let is_value_list: bool = *next_token == Token::LBracket;
 
                             if !is_value_list {

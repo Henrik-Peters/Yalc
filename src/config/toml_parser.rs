@@ -383,12 +383,40 @@ impl Parser {
         root: &'a mut TopLevelTable,
         context: &Vec<Key>,
     ) -> Option<&'a mut Table> {
-        //Check if the value is table
-        if let Some(Value::Table(t)) = root.get_mut(key) {
-            Some(t)
+        //Empty context means root is the context
+        if context.is_empty() {
+            Some(root)
         } else {
-            //The value is not a table or does not exist
-            None
+            let mut current_table: &'a mut Table = root;
+
+            //Descend into the final context table
+            for key in context {
+                match current_table.entry(key.clone()) {
+                    Entry::Occupied(entry) => {
+                        match entry.into_mut() {
+                            Value::Table(ref mut table) => {
+                                current_table = table;
+                            }
+                            _ => {
+                                //No table value is an invalid insert
+                                return None;
+                            }
+                        }
+                    }
+                    Entry::Vacant(entry) => {
+                        //Create a new table
+                        entry.insert(Value::Table(HashMap::new()));
+
+                        if let Some(Value::Table(ref mut table)) = current_table.get_mut(key) {
+                            current_table = table;
+                        } else {
+                            return None;
+                        }
+                    }
+                }
+            }
+
+            Some(current_table)
         }
     }
 }

@@ -394,7 +394,7 @@ impl Parser {
                 match current_table.entry(key.clone()) {
                     Entry::Occupied(entry) => {
                         match entry.into_mut() {
-                            Value::Table(ref mut table) => {
+                            Value::Table(table) => {
                                 current_table = table;
                             }
                             _ => {
@@ -407,7 +407,7 @@ impl Parser {
                         //Create a new table
                         entry.insert(Value::Table(HashMap::new()));
 
-                        if let Some(Value::Table(ref mut table)) = current_table.get_mut(key) {
+                        if let Some(Value::Table(table)) = current_table.get_mut(key) {
                             current_table = table;
                         } else {
                             return None;

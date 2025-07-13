@@ -227,7 +227,7 @@ impl Parser {
 
     /// Return an error when the next token is not a section name token
     fn expect_section_name_token(&self) -> Result<&SectionName, io::Error> {
-        let next_token = self.next_significant_token();
+        let next_token: Option<&Token> = self.next_significant_token();
 
         if let Some(Token::SectionName(s)) = next_token {
             Ok(s)
@@ -242,9 +242,14 @@ impl Parser {
         }
     }
 
+    /// Convert the name of a section to a vector of keys
+    fn parse_section_keys(section_name: &SectionName) -> Vec<Key> {
+        section_name.split('.').map(|s| s.to_string()).collect()
+    }
+
     pub fn parse(&self) -> Result<TopLevelTable, io::Error> {
         let mut root: TopLevelTable = HashMap::new();
-        let mut current_context: &mut Table = &mut root;
+        let mut context: Vec<Key> = Vec::new();
 
         while let Some(token) = self.next_significant_token() {
             match token {
@@ -269,10 +274,10 @@ impl Parser {
                                 let value = self.expect_value_token()?;
 
                                 //Insert into the correct table
-                                Self::insert_into_table(&mut current_context, &key, value.into())?;
+                                Self::insert_into_table(&mut root, &context, &key, value.into())?;
                             } else {
                                 //Expect a list of values and insert them into the table
-                                self.parse_value_list(&mut current_context, &key)?;
+                                self.parse_value_list(&mut root, &context, &key)?;
                             }
                         }
                     }
@@ -281,29 +286,10 @@ impl Parser {
                     //We can have a left bracket of a value array (list) or a left bracket of a section name
                     //But the value of arrays is handled by the "Key"-Case above - so it must be a section name
                     let section_name = self.expect_section_name_token()?;
+                    let section_keys = Self::parse_section_keys(&section_name);
 
-                    //Check if a table for the section name already exists
-                    let table_lookup = Self::lookup_table_value(&root, &section_name);
-
-                    //Use the table lookup reference or create a new table
-                    let section_table: &Table = match table_lookup {
-                        Some(table) => table,
-                        None => {
-                            //Create a new table value
-                            let table_value: Value = Value::Table(HashMap::new());
-
-                            Self::insert_into_table(
-                                &mut current_context,
-                                &section_name,
-                                table_value,
-                            )?;
-
-                            &table_value
-                        }
-                    };
-
-                    //Set the context to the section table
-                    current_context = section_table;
+                    //Apply the new context
+                    context = section_keys;
 
                     //Expect closing bracket after the section name
                     self.expect_token(Token::RBracket)?;
@@ -317,7 +303,12 @@ impl Parser {
     }
 
     /// Parse a list of values and insert them into the table - assumes the next token is LBracket
-    fn parse_value_list(&self, current_context: &mut Table, key: &Key) -> Result<(), io::Error> {
+    fn parse_value_list(
+        &self,
+        root: &mut TopLevelTable,
+        context: &Vec<Key>,
+        key: &Key,
+    ) -> Result<(), io::Error> {
         //A value list must start with a left bracket
         self.expect_token(Token::LBracket)?;
         let mut values: Vec<Value> = Vec::new();
@@ -334,7 +325,7 @@ impl Parser {
                 Token::RBracket => {
                     //The list is closed
                     let list_value: Value = Value::Array(values);
-                    Self::insert_into_table(current_context, &key, list_value)?;
+                    Self::insert_into_table(root, &context, &key, list_value)?;
 
                     return Ok(());
                 }
@@ -350,7 +341,12 @@ impl Parser {
         ));
     }
 
-    fn insert_into_table(table: &mut Table, key: &Key, value: Value) -> Result<(), io::Error> {
+    fn insert_into_table(
+        root: &mut TopLevelTable,
+        context: &Vec<Key>,
+        key: &Key,
+        value: Value,
+    ) -> Result<(), io::Error> {
         //Get the corresponding entry in the map for in-place manipulation
         match table.entry(key.clone()) {
             Entry::Vacant(entry) => {
@@ -368,9 +364,9 @@ impl Parser {
     }
 
     /// Perform a lookup of a table value via a full key name from the root
-    fn lookup_table_value<'a>(root: &'a TopLevelTable, key: &Key) -> Option<&'a Table> {
+    fn lookup_table_value<'a>(root: &'a mut TopLevelTable, key: &Key) -> Option<&'a mut Table> {
         //Check if the value is table
-        if let Some(Value::Table(t)) = root.get(key) {
+        if let Some(Value::Table(t)) = root.get_mut(key) {
             Some(t)
         } else {
             //The value is not a table or does not exist

@@ -347,24 +347,42 @@ impl Parser {
         key: &Key,
         value: Value,
     ) -> Result<(), io::Error> {
-        //Get the corresponding entry in the map for in-place manipulation
-        match table.entry(key.clone()) {
-            Entry::Vacant(entry) => {
-                entry.insert(value);
-            }
-            Entry::Occupied(mut _entry) => {
+        //Descend into the correct context table
+        match Self::get_context_table(root, &context) {
+            None => {
+                //The context path contains values which are not tables
                 return Err(io::Error::new(
                     ErrorKind::InvalidData,
-                    format!("Duplicate toml key: {}", key),
+                    format!(
+                        "Tried to insert into context keys which are not tables: {:?}",
+                        &context
+                    ),
                 ));
             }
-        };
+            Some(context_table) => {
+                //Get the corresponding entry in the map for in-place manipulation
+                match context_table.entry(key.clone()) {
+                    Entry::Vacant(entry) => {
+                        entry.insert(value);
+                    }
+                    Entry::Occupied(mut _entry) => {
+                        return Err(io::Error::new(
+                            ErrorKind::InvalidData,
+                            format!("Duplicate toml key: {}", key),
+                        ));
+                    }
+                };
 
-        Ok(())
+                Ok(())
+            }
+        }
     }
 
-    /// Perform a lookup of a table value via a full key name from the root
-    fn lookup_table_value<'a>(root: &'a mut TopLevelTable, key: &Key) -> Option<&'a mut Table> {
+    /// Perform a lookup or creation of a table for a context path
+    fn get_context_table<'a>(
+        root: &'a mut TopLevelTable,
+        context: &Vec<Key>,
+    ) -> Option<&'a mut Table> {
         //Check if the value is table
         if let Some(Value::Table(t)) = root.get_mut(key) {
             Some(t)

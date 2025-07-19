@@ -72,7 +72,7 @@ pub enum Value {
     /// Represents true or false
     Bool(bool),
 
-    /// Represents Timestamps - simple ISO 8601 string assumed
+    /// Represents Timestamps in RFC 3339 format
     DateTime(String),
 
     /// Represents an indexed list with values
@@ -87,6 +87,7 @@ impl From<LValue> for Value {
         match value {
             LValue::Bool(v) => Value::Bool(v),
             LValue::String(v) => Value::String(v),
+            LValue::DateTime(v) => Value::DateTime(v),
             LValue::Integer(v) => Value::Integer(v),
             LValue::Float(v) => Value::Float(v),
         }
@@ -98,6 +99,7 @@ impl From<&LValue> for Value {
         match value {
             LValue::Bool(v) => Value::Bool(*v),
             LValue::String(v) => Value::String(v.clone()),
+            LValue::DateTime(v) => Value::DateTime(v.clone()),
             LValue::Integer(v) => Value::Integer(*v),
             LValue::Float(v) => Value::Float(*v),
         }

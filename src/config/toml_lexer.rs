@@ -64,6 +64,7 @@ pub enum Token {
 pub enum Value {
     Bool(bool),
     String(String),
+    DateTime(String),
     Integer(i64),
     Float(f64),
 }
@@ -255,8 +256,9 @@ impl Lexer {
         let mut value_str = first_char.to_string();
 
         while let Some(c) = self.look_ahead_char() {
-            if c.is_alphanumeric() || c == '.' || c == '_' || c == '-' {
-                // Consume the next character
+            if c.is_alphanumeric() || c == '.' || c == '_' || c == '-' || Lexer::is_datetime_char(c)
+            {
+                //Consume the next character
                 let next_char = self.next_char();
                 if let Some(c) = next_char {
                     value_str.push(c);
@@ -271,6 +273,17 @@ impl Lexer {
             return bool_token;
         }
 
+        //As per RFC 3339, DateTimes are somewhat distinct, so we check for common DateTime indicators.
+        //This is not a full validation since we are just performing lexing here
+        if value_str.contains('-')
+            && (value_str.contains('T')
+                || value_str.contains(':')
+                || value_str.ends_with('Z')
+                || value_str.contains('+'))
+        {
+            return Token::Value(Value::DateTime(value_str));
+        }
+
         //Try parsing as integer
         if let Ok(int_val) = value_str.parse::<i64>() {
             return Token::Value(Value::Integer(int_val));
@@ -283,6 +296,11 @@ impl Lexer {
 
         //If nothing matched, treat it as a error
         Token::Error(format!("Invalid value data type at: {}", value_str))
+    }
+
+    /// Helper function to check if a character is part of a TOML datetime.
+    fn is_datetime_char(c: char) -> bool {
+        c.is_ascii_digit() || c == '-' || c == 'T' || c == ':' || c == 'Z' || c == '.' || c == '+'
     }
 
     /// Try to parse a value as boolean
@@ -432,6 +450,26 @@ mod tests {
             Token::Equal,
             Token::Whitespace,
             Token::Value(Value::Float(12.3)),
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            assert_eq!(token, expected_token);
+        }
+    }
+
+    #[test]
+    fn test_simple_date_time() {
+        let input = "updated = 2025-03-25T12:34:56Z";
+        let mut lexer = Lexer::new(input);
+
+        let tokens = vec![
+            Token::Key("updated".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::DateTime("2025-03-25T12:34:56Z".to_string())),
             Token::EOF,
         ];
 

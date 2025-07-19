@@ -798,4 +798,53 @@ last_write_h = 7
             assert_eq!(token, expected_token);
         }
     }
+
+    #[test]
+    fn test_sub_table_entries() {
+        let input = r#"[servers]
+
+[servers.alpha]
+ip = 1
+
+[servers.beta]
+ip = 2
+"#;
+
+        let mut lexer = Lexer::new(input);
+        let tokens = vec![
+            Token::LBracket,
+            Token::SectionName("servers".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("servers.alpha".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("ip".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Integer(1)),
+            Token::Newline,
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("servers.beta".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("ip".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(Value::Integer(2)),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        for expected_token in tokens {
+            let token = lexer.next_token();
+            println!("{:?}", token);
+            assert_eq!(token, expected_token);
+        }
+    }
 }

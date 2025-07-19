@@ -605,4 +605,60 @@ mod tests {
 
         assert_eq!(table, exp_table);
     }
+
+    #[test]
+    fn test_sub_tables() {
+        let tokens = vec![
+            Token::Key("keep_rotate".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(12)),
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("servers".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("servers.alpha".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("ip".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(1)),
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("servers.beta".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("ip".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(2)),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        let parser = Parser::new(tokens);
+        let table: TopLevelTable = parser.parse().unwrap();
+
+        let mut servers_alpha_table: Table = HashMap::new();
+        servers_alpha_table.insert("ip".to_string(), Value::Integer(1));
+
+        let mut servers_beta_table: Table = HashMap::new();
+        servers_beta_table.insert("ip".to_string(), Value::Integer(2));
+
+        let mut servers_table: Table = HashMap::new();
+        servers_table.insert("alpha".to_string(), Value::Table(servers_alpha_table));
+        servers_table.insert("beta".to_string(), Value::Table(servers_beta_table));
+
+        let mut exp_table: TopLevelTable = HashMap::new();
+        exp_table.insert("keep_rotate".to_string(), Value::Integer(12));
+        exp_table.insert("servers".to_string(), Value::Table(servers_table));
+
+        assert_eq!(table, exp_table);
+    }
 }

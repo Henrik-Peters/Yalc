@@ -208,7 +208,7 @@ impl Lexer {
                         _ if c.is_alphanumeric() || c == '_' || c == '.' => {
                             self.parse_key_or_value(c)
                         }
-                        _ => Token::Error("Unknown token".to_string()), //Handle any unexpected characters
+                        _ => Token::Error(format!("Unknown token at: {}", c)), //Handle any unexpected characters
                     }
                 }
             }
@@ -282,7 +282,7 @@ impl Lexer {
         }
 
         //If nothing matched, treat it as a error
-        Token::Error("Invalid value data type".to_string())
+        Token::Error(format!("Invalid value data type at: {}", value_str))
     }
 
     /// Try to parse a value as boolean

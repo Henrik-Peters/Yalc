@@ -764,4 +764,75 @@ mod tests {
 
         assert_eq!(table, exp_table);
     }
+
+    #[test]
+    fn test_array_of_tables() {
+        let tokens = vec![
+            Token::Key("keep_rotate".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(21)),
+            Token::Newline,
+            Token::DoubleLBracket,
+            Token::SectionName("users".to_string()),
+            Token::DoubleRBracket,
+            Token::Newline,
+            Token::Key("age".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(1)),
+            Token::Newline,
+            Token::Newline,
+            Token::DoubleLBracket,
+            Token::SectionName("users".to_string()),
+            Token::DoubleRBracket,
+            Token::Newline,
+            Token::Key("age".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(2)),
+            Token::Newline,
+            Token::Newline,
+            Token::DoubleLBracket,
+            Token::SectionName("users".to_string()),
+            Token::DoubleRBracket,
+            Token::Newline,
+            Token::Key("age".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(3)),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        let parser = Parser::new(tokens);
+        let table: TopLevelTable = parser.parse().unwrap();
+
+        let mut exp_table: TopLevelTable = HashMap::new();
+        exp_table.insert("keep_rotate".to_string(), Value::Integer(21));
+
+        let mut table_0: Table = HashMap::new();
+        table_0.insert("age".to_string(), Value::Integer(1));
+
+        let mut table_1: Table = HashMap::new();
+        table_1.insert("age".to_string(), Value::Integer(2));
+
+        let mut table_2: Table = HashMap::new();
+        table_2.insert("age".to_string(), Value::Integer(3));
+
+        exp_table.insert(
+            "users".to_string(),
+            Value::Array(vec![
+                Value::Table(table_0),
+                Value::Table(table_1),
+                Value::Table(table_2),
+            ]),
+        );
+
+        assert_eq!(table, exp_table);
+    }
 }

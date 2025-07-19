@@ -347,55 +347,39 @@ impl Parser {
         key: &Key,
         value: Value,
     ) -> Result<(), io::Error> {
-        //First get the context table
         let mut current_table: &mut Table = root;
 
-        //Descend into the final context table
-        for key in context {
-            match current_table.entry(key.clone()) {
-                Entry::Occupied(entry) => {
-                    match entry.into_mut() {
-                        Value::Table(table) => {
-                            current_table = table;
-                        }
-                        _ => {
-                            //The context path contains values which are not tables
-                            return Err(io::Error::new(
-                                ErrorKind::InvalidData,
-                                format!(
-                                    "Tried to insert into context keys which are not tables: {:?}",
-                                    &context
-                                ),
-                            ));
-                        }
-                    }
-                }
-                Entry::Vacant(entry) => {
-                    //Create a new table
-                    entry.insert(Value::Table(HashMap::new()));
+        for part in context {
+            //Find the entry for the current key - create new tables when no key-value exists
+            let entry = current_table
+                .entry(part.clone())
+                .or_insert_with(|| Value::Table(HashMap::new()));
 
-                    //The created value is always a table
-                    if let Some(Value::Table(table)) = current_table.get_mut(key) {
-                        current_table = table;
-                    }
-                }
+            //Make sure the value in the path is actually a table
+            if let Value::Table(table) = entry {
+                current_table = table;
+            } else {
+                return Err(io::Error::new(
+                    ErrorKind::InvalidData,
+                    format!(
+                        "Tried to insert into context keys which are not tables: {:?}",
+                        &context
+                    ),
+                ));
             }
         }
 
-        //Get the corresponding entry in the map for in-place manipulation
+        //Insert the final key-value pair in the target table
         match current_table.entry(key.clone()) {
             Entry::Vacant(entry) => {
                 entry.insert(value);
+                Ok(())
             }
-            Entry::Occupied(mut _entry) => {
-                return Err(io::Error::new(
-                    ErrorKind::InvalidData,
-                    format!("Duplicate toml key: {}", key),
-                ));
-            }
-        };
-
-        Ok(())
+            Entry::Occupied(_) => Err(io::Error::new(
+                ErrorKind::InvalidData,
+                format!("Duplicate toml key: {}", key),
+            )),
+        }
     }
 }
 

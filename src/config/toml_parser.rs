@@ -294,6 +294,57 @@ impl Parser {
                     //Expect closing bracket after the section name
                     self.expect_token(Token::RBracket)?;
                 }
+                Token::DoubleLBracket => {
+                    //We have an array of tables. The next token must be the section name of the array
+                    let section_name = self.expect_section_name_token()?;
+                    let section_keys = Self::parse_section_keys(section_name);
+
+                    //Expect closing bracket after array of tables section name
+                    self.expect_token(Token::DoubleRBracket)?;
+
+                    //Navigate to the parent table. The last key is the array's name.
+                    let (array_key, parent_keys) = section_keys.split_last().ok_or_else(|| {
+                        io::Error::new(
+                            ErrorKind::InvalidData,
+                            "Array of tables name cannot be empty",
+                        )
+                    })?;
+
+                    let mut current_table = &mut root;
+
+                    for key in parent_keys {
+                        let entry = current_table
+                            .entry(key.clone())
+                            .or_insert_with(|| Value::Table(Table::new()));
+
+                        if let Value::Table(table) = entry {
+                            current_table = table;
+                        } else {
+                            return Err(io::Error::new(
+                                ErrorKind::InvalidData,
+                                format!("Key '{}' in path is not a table.", key),
+                            ));
+                        }
+                    }
+
+                    //In the parent table, find or create the array
+                    let array_value = current_table
+                        .entry(array_key.clone())
+                        .or_insert_with(|| Value::Array(Vec::new()));
+
+                    //The value must be an array, append a new table to it
+                    if let Value::Array(array) = array_value {
+                        array.push(Value::Table(Table::new()));
+                    } else {
+                        return Err(io::Error::new(
+                            ErrorKind::InvalidData,
+                            format!("Key '{}' is not an array of tables.", array_key),
+                        ));
+                    }
+
+                    //Set the context for following key-value pairs
+                    context = section_keys;
+                }
                 Token::EOF => break,
                 _ => continue, //Ignore comments/whitespace
             }
@@ -350,23 +401,40 @@ impl Parser {
         let mut current_table: &mut Table = root;
 
         for part in context {
-            //Find the entry for the current key - create new tables when no key-value exists
+            //Get a mutable reference to the value at the current context key
             let entry = current_table
                 .entry(part.clone())
                 .or_insert_with(|| Value::Table(HashMap::new()));
 
-            //Make sure the value in the path is actually a table
-            if let Value::Table(table) = entry {
-                current_table = table;
-            } else {
-                return Err(io::Error::new(
-                    ErrorKind::InvalidData,
-                    format!(
-                        "Tried to insert into context keys which are not tables: {:?}",
-                        &context
-                    ),
-                ));
-            }
+            //Now, we need to get a mutable reference to the table we want to insert into.
+            //This can either be the entry itself (if it's a table) or the *last*
+            //element of the entry (if it's an array of tables).
+            let target_table = match entry {
+                Value::Table(table) => table,
+                Value::Array(array) => {
+                    if let Some(Value::Table(table)) = array.last_mut() {
+                        table
+                    } else {
+                        return Err(io::Error::new(
+                            ErrorKind::InvalidData,
+                            format!(
+                                "Cannot insert, array '{}' does not contain tables or is empty",
+                                part
+                            ),
+                        ));
+                    }
+                }
+                _ => {
+                    return Err(io::Error::new(
+                        ErrorKind::InvalidData,
+                        format!(
+                            "Tried to insert into context key '{}' which is not a table or array of tables",
+                            part
+                        ),
+                    ));
+                }
+            };
+            current_table = target_table;
         }
 
         //Insert the final key-value pair in the target table

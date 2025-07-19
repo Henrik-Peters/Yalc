@@ -661,4 +661,107 @@ mod tests {
 
         assert_eq!(table, exp_table);
     }
+
+    #[test]
+    fn test_sub_table_array_value() {
+        let tokens = vec![
+            Token::Key("keep_rotate".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(10)),
+            Token::Newline,
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("retention".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("file_size_mb".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(30)),
+            Token::Newline,
+            Token::Key("colors".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::LBracket,
+            Token::Value(LValue::String("red".to_string())),
+            Token::Comma,
+            Token::Whitespace,
+            Token::Value(LValue::String("green".to_string())),
+            Token::Comma,
+            Token::Whitespace,
+            Token::Value(LValue::String("blue".to_string())),
+            Token::RBracket,
+            Token::Newline,
+            Token::Newline,
+            Token::Key("enable_flags".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::LBracket,
+            Token::Newline,
+            Token::Whitespace,
+            Token::Value(LValue::Bool(true)),
+            Token::Comma,
+            Token::Newline,
+            Token::Whitespace,
+            Token::Value(LValue::Bool(true)),
+            Token::Comma,
+            Token::Newline,
+            Token::Whitespace,
+            Token::Value(LValue::Bool(false)),
+            Token::Comma,
+            Token::Newline,
+            Token::Whitespace,
+            Token::Value(LValue::Bool(true)),
+            Token::Newline,
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("final_key".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(50)),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        let parser = Parser::new(tokens);
+        let table: TopLevelTable = parser.parse().unwrap();
+
+        let mut exp_table: TopLevelTable = HashMap::new();
+        exp_table.insert("keep_rotate".to_string(), Value::Integer(10));
+
+        let mut retention_table: Table = HashMap::new();
+        retention_table.insert("file_size_mb".to_string(), Value::Integer(30));
+        retention_table.insert(
+            "colors".to_string(),
+            Value::Array(vec![
+                Value::String("red".to_string()),
+                Value::String("green".to_string()),
+                Value::String("blue".to_string()),
+            ]),
+        );
+
+        retention_table.insert(
+            "enable_flags".to_string(),
+            Value::Array(vec![
+                Value::Bool(true),
+                Value::Bool(true),
+                Value::Bool(false),
+                Value::Bool(true),
+            ]),
+        );
+
+        retention_table.insert("final_key".to_string(), Value::Integer(50));
+
+        let mut exp_table: TopLevelTable = HashMap::new();
+        exp_table.insert("keep_rotate".to_string(), Value::Integer(10));
+        exp_table.insert("retention".to_string(), Value::Table(retention_table));
+
+        assert_eq!(table, exp_table);
+    }
 }

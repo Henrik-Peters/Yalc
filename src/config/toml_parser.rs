@@ -493,4 +493,116 @@ mod tests {
 
         assert_eq!(table, exp_table);
     }
+
+    #[test]
+    fn test_single_table() {
+        let tokens = vec![
+            Token::Key("keep_rotate".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(12)),
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("retention".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("file_size_mb".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(24)),
+            Token::Newline,
+            Token::Key("last_write_h".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(5)),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        let parser = Parser::new(tokens);
+        let table: TopLevelTable = parser.parse().unwrap();
+
+        let mut retention_table: Table = HashMap::new();
+
+        retention_table.insert("file_size_mb".to_string(), Value::Integer(24));
+        retention_table.insert("last_write_h".to_string(), Value::Integer(5));
+
+        let mut exp_table: TopLevelTable = HashMap::new();
+        exp_table.insert("keep_rotate".to_string(), Value::Integer(12));
+        exp_table.insert("retention".to_string(), Value::Table(retention_table));
+
+        assert_eq!(table, exp_table);
+    }
+
+    #[test]
+    fn test_mixed_tables() {
+        let tokens = vec![
+            Token::Key("keep_rotate".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(12)),
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("retention".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("file_size_mb".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(24)),
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("config".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("first_config".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(1)),
+            Token::Newline,
+            Token::Key("second_config".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(2)),
+            Token::Newline,
+            Token::LBracket,
+            Token::SectionName("retention".to_string()),
+            Token::RBracket,
+            Token::Newline,
+            Token::Key("last_write_h".to_string()),
+            Token::Whitespace,
+            Token::Equal,
+            Token::Whitespace,
+            Token::Value(LValue::Integer(5)),
+            Token::Newline,
+            Token::EOF,
+        ];
+
+        let parser = Parser::new(tokens);
+        let table: TopLevelTable = parser.parse().unwrap();
+
+        let mut retention_table: Table = HashMap::new();
+
+        retention_table.insert("file_size_mb".to_string(), Value::Integer(24));
+        retention_table.insert("last_write_h".to_string(), Value::Integer(5));
+
+        let mut config_table: Table = HashMap::new();
+
+        config_table.insert("first_config".to_string(), Value::Integer(1));
+        config_table.insert("second_config".to_string(), Value::Integer(2));
+
+        let mut exp_table: TopLevelTable = HashMap::new();
+        exp_table.insert("keep_rotate".to_string(), Value::Integer(12));
+        exp_table.insert("retention".to_string(), Value::Table(retention_table));
+        exp_table.insert("config".to_string(), Value::Table(config_table));
+
+        assert_eq!(table, exp_table);
+    }
 }

@@ -97,3 +97,64 @@ where
         )),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_get_bool() {
+        let mut root: TopLevelTable = HashMap::new();
+        root.insert("dry_run".to_string(), Value::Bool(true));
+        root.insert("other_key".to_string(), Value::Bool(false));
+
+        assert_eq!(get_bool(&root, "dry_run").unwrap(), true);
+        assert_eq!(get_bool(&root, "other_key").unwrap(), false);
+    }
+
+    #[test]
+    fn test_get_uint() {
+        let mut root: TopLevelTable = HashMap::new();
+        root.insert("my_value".to_string(), Value::Integer(1234));
+
+        let my_value: u64 = get_uint(&root, "my_value").unwrap();
+        assert_eq!(my_value, 1234);
+
+        //The value 1234 will not fit, range of u8 is [0, 255]
+        let too_small: Result<u8, io::Error> = get_uint(&root, "my_value");
+        assert!(too_small.is_err());
+    }
+
+    #[test]
+    fn test_sub_tables() {
+        let mut root: TopLevelTable = HashMap::new();
+        root.insert("dry_run".to_string(), Value::Bool(false));
+
+        let mut config_table: Table = HashMap::new();
+        config_table.insert("val_a".to_string(), Value::Integer(1));
+        config_table.insert("val_b".to_string(), Value::Integer(2));
+
+        let mut servers_table: Table = HashMap::new();
+        servers_table.insert("total".to_string(), Value::Integer(12));
+        servers_table.insert("healthy".to_string(), Value::Integer(5));
+        servers_table.insert("config".to_string(), Value::Table(config_table));
+
+        root.insert("servers".to_string(), Value::Table(servers_table));
+
+        //Table: root
+        assert_eq!(get_bool(&root, "dry_run").unwrap(), false);
+
+        //Table: servers
+        assert_eq!(get_uint::<u64>(&root, "servers.total").unwrap(), 12);
+        assert_eq!(get_uint::<u64>(&root, "servers.healthy").unwrap(), 5);
+
+        //Table: config
+        assert_eq!(get_uint::<u64>(&root, "servers.config.val_a").unwrap(), 1);
+        assert_eq!(get_uint::<u64>(&root, "servers.config.val_b").unwrap(), 2);
+
+        //Make a lookup where the final value os only a table
+        let only_table: Result<u8, io::Error> = get_uint(&root, "servers.config");
+        assert!(only_table.is_err());
+    }
+}

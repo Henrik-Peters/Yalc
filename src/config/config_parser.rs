@@ -16,8 +16,7 @@ pub fn parse_config(root: &TopLevelTable) -> Result<Config, io::Error> {
     //Get all attributes at the root level
     let dry_run: bool = get_bool(&root, "dry_run")?;
 
-    //retention
-    let file_size_mb: u64 = get_uint(&root, "keep_rotate")?;
+    let file_size_mb: u64 = get_uint(&root, "retention.file_size_mb")?;
 
     println!("dry_run: {:?}", dry_run);
     println!("file_size_mb: {:?}", file_size_mb);
@@ -25,19 +24,41 @@ pub fn parse_config(root: &TopLevelTable) -> Result<Config, io::Error> {
     Err(io::Error::new(ErrorKind::Other, "Not implemented"))
 }
 
-fn get_value<'a>(table: &'a Table, key: &str) -> Result<&'a Value, io::Error> {
-    match table.get(key) {
-        Some(value) => Ok(value),
-        None => Err(io::Error::new(
-            ErrorKind::NotFound,
-            format!("Missing required config key: '{}'", key),
-        )),
+/// Get a value from the top level table. Use '.' to separate between sub tables
+fn get_value<'a>(root: &'a TopLevelTable, key: &str) -> Result<&'a Value, io::Error> {
+    //Split the key by dot to access sub tables
+    let keys: Vec<&str> = key.split('.').collect();
+    let mut current_table: &Table = root;
+
+    for (i, current_key) in keys.iter().enumerate() {
+        match current_table.get(*current_key) {
+            Some(Value::Table(inner_table)) if i < keys.len() - 1 => {
+                //We have a table and should continue processing the next key part
+                current_table = inner_table;
+            }
+            Some(value) if i == keys.len() - 1 => {
+                //We are at the last key part
+                return Ok(value);
+            }
+            _ => {
+                //Key lookup failed or value is not a table
+                return Err(io::Error::new(
+                    ErrorKind::NotFound,
+                    format!("Missing or invalid config key: '{}'", key),
+                ));
+            }
+        }
     }
+
+    Err(io::Error::new(
+        ErrorKind::NotFound,
+        format!("Missing required config key: '{}'", key),
+    ))
 }
 
 /// Helper function to extract a boolean value
-fn get_bool(table: &Table, key: &str) -> Result<bool, io::Error> {
-    match get_value(&table, &key)? {
+fn get_bool(root: &TopLevelTable, key: &str) -> Result<bool, io::Error> {
+    match get_value(&root, &key)? {
         Value::Bool(b) => Ok(*b),
         _ => Err(io::Error::new(
             ErrorKind::InvalidData,
@@ -47,11 +68,11 @@ fn get_bool(table: &Table, key: &str) -> Result<bool, io::Error> {
 }
 
 /// Helper function to extract an unsigned integer value
-fn get_uint<T>(table: &Table, key: &str) -> Result<T, io::Error>
+fn get_uint<T>(root: &TopLevelTable, key: &str) -> Result<T, io::Error>
 where
     T: Copy + TryFrom<usize>,
 {
-    match get_value(table, key)? {
+    match get_value(root, key)? {
         Value::Integer(i) => {
             if *i >= 0 {
                 let value = *i as usize;

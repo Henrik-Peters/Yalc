@@ -5,6 +5,7 @@
 //!
 
 pub mod config_commands;
+pub mod config_parser;
 pub mod toml_lexer;
 pub mod toml_parser;
 pub mod toml_writer;

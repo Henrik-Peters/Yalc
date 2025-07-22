@@ -1,3 +1,9 @@
+//! Module for the yalc toml parser logic
+//!
+//! Provides logic for parsing toml tables from toml lexer tokens.
+//! The concrete values for the config instance will also pared in the process.
+//! Note that this parser implementation does not cover all toml features.
+//!
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -7,6 +13,7 @@ use std::io::ErrorKind;
 use std::path::Path;
 
 use crate::config::Config;
+use crate::config::config_parser;
 use crate::config::toml_lexer::Lexer;
 use crate::config::toml_lexer::SectionName;
 use crate::config::toml_lexer::Token;
@@ -37,9 +44,9 @@ pub fn load_config(path: &Path) -> Result<Config, io::Error> {
     let parser = Parser::new(tokens);
     let table: TopLevelTable = parser.parse()?;
 
-    println!("{:?}", table);
-
-    Err(io::Error::new(ErrorKind::Other, "Not implemented"))
+    //Parse the concrete config values from the toml table
+    let config: Config = config_parser::parse_config(&table)?;
+    Ok(config)
 }
 
 /// Load the config file content. Will return an error if the file does not exist.

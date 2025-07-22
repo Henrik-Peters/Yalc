@@ -25,6 +25,14 @@ pub struct Config {
     /// If this number is exceeded, the oldest file is deleted
     pub keep_rotate: u64,
 
+    /// When set to true then no error will be printed when
+    /// a file in the file list does not exist in the file system.
+    pub missing_files_ok: bool,
+
+    /// When set to true yalc copies the file and empties it
+    /// without disturbing the process that is still writing
+    pub copy_truncate: bool,
+
     /// List with all file paths where log files should be processed
     pub file_list: Vec<String>,
 

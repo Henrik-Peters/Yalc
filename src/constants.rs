@@ -14,6 +14,9 @@ mode = "FileSize"
 
 keep_rotate = 4
 
+missing_files_ok = true
+copy_truncate = true
+
 file_list = [
     "apple.log",
     "banana.log", 

@@ -101,3 +101,28 @@ pub struct RetentionConfig {
     /// Hours since the last write operation before a file is cleaned up
     last_write_h: u64,
 }
+
+impl Config {
+    /// Display all config values in a very readable way
+    pub fn print_config_values(&self) {
+        println!("Config:");
+        println!("  Dry Run: {}", self.dry_run);
+        println!("  Mode: {:?}", self.mode);
+        println!("  Keep Rotate: {}", self.keep_rotate);
+        println!("  Missing Files OK: {}", self.missing_files_ok);
+        println!("  Copy Truncate: {}", self.copy_truncate);
+
+        println!("  File List:");
+        if self.file_list.is_empty() {
+            println!("    (empty)");
+        } else {
+            for (i, file) in self.file_list.iter().enumerate() {
+                println!("    {}: {}", i + 1, file);
+            }
+        }
+
+        println!("  Retention Config:");
+        println!("    File Size (MB): {}", self.retention.file_size_mb);
+        println!("    Last Write (hours): {}", self.retention.last_write_h);
+    }
+}

@@ -47,9 +47,16 @@ pub fn execute_check_config_command() -> Result<(), io::Error> {
     let path = Path::new(DEFAULT_CONFIG_PATH);
 
     //The config is validated by the load function
-    let _ = toml_parser::load_config(&path)?;
+    match toml_parser::load_config(&path) {
+        Ok(config) => {
+            println!("Yalc config check: [VALID]");
+            config.print_config_values();
+        }
+        Err(e) => {
+            println!("Yalc config check: [ERROR]");
+            eprintln!("Config error: {}", e);
+        }
+    }
 
-    //Final print that the config is valid
-    println!("Yalc config check: [VALID]");
     Ok(())
 }

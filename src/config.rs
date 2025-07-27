@@ -12,6 +12,9 @@ pub mod toml_writer;
 
 pub use config_commands::*;
 
+use std::fmt;
+use std::str::FromStr;
+
 /// Represents the config for an execution of the yalc cleanup
 #[derive(Debug)]
 pub struct Config {
@@ -56,6 +59,37 @@ pub enum CleanUpMode {
     /// All cleanup modes are evaluated. A file is cleaned up
     /// if at least one condition is met (OR combination)
     All,
+}
+
+/// Custom error type for parsing CleanUpMode
+#[derive(Debug)]
+pub struct ParseCleanUpModeError {
+    invalid_value: String,
+}
+
+//Implement the Display trait
+impl fmt::Display for ParseCleanUpModeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Failed to parse CleanUpMode: {}", self.invalid_value)
+    }
+}
+
+//Implement the std Error trait
+impl std::error::Error for ParseCleanUpModeError {}
+
+impl FromStr for CleanUpMode {
+    type Err = ParseCleanUpModeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "FILESIZE" => Ok(CleanUpMode::FileSize),
+            "LASTWRITE" => Ok(CleanUpMode::LastWrite),
+            "ALL" => Ok(CleanUpMode::All),
+            _ => Err(ParseCleanUpModeError {
+                invalid_value: s.to_string(),
+            }),
+        }
+    }
 }
 
 /// Represents the config values before a file cleanup should be started

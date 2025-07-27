@@ -15,9 +15,12 @@ use crate::config::{
 pub fn parse_config(root: &TopLevelTable) -> Result<Config, io::Error> {
     //Get all attributes at the root level
     let dry_run: bool = get_bool(&root, "dry_run")?;
-
     let mode_raw: String = get_string(&root, "mode")?;
-    let mode: CleanUpMode = CleanUpMode::All;
+
+    //Convert mode_raw to enum variant
+    let mode: CleanUpMode = mode_raw
+        .parse::<CleanUpMode>()
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e.to_string()))?;
 
     let keep_rotate: u64 = get_uint(&root, "keep_rotate")?;
     let missing_files_ok: bool = get_bool(&root, "missing_files_ok")?;

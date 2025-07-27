@@ -7,7 +7,7 @@ use std::io;
 use std::io::ErrorKind;
 
 use crate::config::{
-    Config,
+    CleanUpMode, Config, RetentionConfig,
     toml_parser::{Table, TopLevelTable, Value},
 };
 
@@ -16,12 +16,37 @@ pub fn parse_config(root: &TopLevelTable) -> Result<Config, io::Error> {
     //Get all attributes at the root level
     let dry_run: bool = get_bool(&root, "dry_run")?;
 
+    let mode_raw: String = get_string(&root, "mode")?;
+    let mode: CleanUpMode = CleanUpMode::All;
+
+    let keep_rotate: u64 = get_uint(&root, "keep_rotate")?;
+    let missing_files_ok: bool = get_bool(&root, "missing_files_ok")?;
+    let copy_truncate: bool = get_bool(&root, "copy_truncate")?;
+
+    //File list config
+    let file_list: Vec<String> = Vec::new();
+
+    //Retention config
     let file_size_mb: u64 = get_uint(&root, "retention.file_size_mb")?;
+    let last_write_h: u64 = get_uint(&root, "retention.last_write_h")?;
 
-    println!("dry_run: {:?}", dry_run);
-    println!("file_size_mb: {:?}", file_size_mb);
+    let retention = RetentionConfig {
+        file_size_mb,
+        last_write_h,
+    };
 
-    Err(io::Error::new(ErrorKind::Other, "Not implemented"))
+    //Create the final config instance
+    let config = Config {
+        dry_run,
+        mode,
+        keep_rotate,
+        missing_files_ok,
+        copy_truncate,
+        file_list,
+        retention,
+    };
+
+    Ok(config)
 }
 
 /// Get a value from the top level table. Use '.' to separate between sub tables
@@ -98,6 +123,17 @@ where
     }
 }
 
+/// Helper function to extract a string value
+fn get_string(root: &TopLevelTable, key: &str) -> Result<String, io::Error> {
+    match get_value(&root, &key)? {
+        Value::String(s) => Ok(s.clone()),
+        _ => Err(io::Error::new(
+            ErrorKind::InvalidData,
+            format!("Expected string for config key: '{}'", key),
+        )),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -156,5 +192,15 @@ mod tests {
         //Make a lookup where the final value os only a table
         let only_table: Result<u8, io::Error> = get_uint(&root, "servers.config");
         assert!(only_table.is_err());
+    }
+
+    #[test]
+    fn test_get_string() {
+        let mut root: TopLevelTable = HashMap::new();
+        root.insert("mode".to_string(), Value::String("all".to_string()));
+        root.insert("other_key".to_string(), Value::String("other".to_string()));
+
+        assert_eq!(get_string(&root, "mode").unwrap(), "all".to_string());
+        assert_eq!(get_string(&root, "other_key").unwrap(), "other".to_string());
     }
 }

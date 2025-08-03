@@ -111,3 +111,32 @@ pub fn adjust_runner_config(config: Config, args: &Vec<String>) -> Config {
 
     adjusted_config
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{CleanUpMode, RetentionConfig};
+
+    #[test]
+    fn test_adjust_runner_config() {
+        let raw_config: Config = Config {
+            dry_run: false,
+            mode: CleanUpMode::FileSize,
+            keep_rotate: 3,
+            missing_files_ok: false,
+            copy_truncate: false,
+            file_list: vec!["/var/log/my_app.log".to_string()],
+            retention: RetentionConfig {
+                file_size_mb: 50,
+                last_write_h: 168,
+            },
+        };
+
+        let args: Vec<String> = vec!["-d".to_string(), "-t".to_string()];
+        let adjusted_config = adjust_runner_config(raw_config, &args);
+
+        assert_eq!(adjusted_config.dry_run, true);
+        assert_eq!(adjusted_config.missing_files_ok, false);
+        assert_eq!(adjusted_config.copy_truncate, true);
+    }
+}

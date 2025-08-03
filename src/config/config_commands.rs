@@ -8,7 +8,7 @@ use std::fs::{File, metadata};
 use std::io::{self, Error, ErrorKind, Write};
 use std::path::Path;
 
-use crate::config::toml_parser;
+use crate::config::{Config, toml_parser};
 use crate::constants::{DEFAULT_CONFIG_CONTENT, DEFAULT_CONFIG_PATH};
 
 /// This command is called via "yalc config init".
@@ -43,6 +43,7 @@ fn create_default_config_file(path: &Path) -> Result<(), io::Error> {
     Ok(())
 }
 
+/// This command is called via "yalc config check".
 pub fn execute_check_config_command() -> Result<(), io::Error> {
     let path = Path::new(DEFAULT_CONFIG_PATH);
 
@@ -60,3 +61,14 @@ pub fn execute_check_config_command() -> Result<(), io::Error> {
 
     Ok(())
 }
+
+/// Load the config from a specific path
+pub fn load_config(path: &Path) -> Result<Config, io::Error> {
+    match toml_parser::load_config(&path) {
+        Ok(config) => Ok(config),
+        Err(e) => Err(e),
+    }
+}
+
+/// Create a new config where the cli args overwrite the config values
+pub fn adjust_runner_config(config: Config, args: &Vec<String>) -> Config {}

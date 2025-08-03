@@ -1,6 +1,7 @@
 use crate::command::Command;
 use std::env;
 
+mod cleaner;
 mod command;
 mod config;
 mod constants;

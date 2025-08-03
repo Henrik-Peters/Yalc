@@ -4,7 +4,12 @@
 //! Other modules may be using to execute commands.
 //!
 
-use crate::{config, constants::YALC_VERSION};
+use crate::{
+    config,
+    constants::{DEFAULT_CONFIG_PATH, YALC_VERSION},
+};
+
+use std::path::Path;
 
 /// Enum representing different commands that can be executed
 #[derive(Debug)]
@@ -37,8 +42,9 @@ impl Command {
         //First entry is called program name
         args.remove(0);
 
+        //Execute run without any additional args
         if args.is_empty() {
-            return Command::Help;
+            return Command::Run(vec![]);
         }
 
         match args[0].to_lowercase().as_str() {
@@ -98,6 +104,24 @@ impl Command {
                 for (i, arg) in args.iter().enumerate() {
                     println!("  Arg {}: {}", i + 1, arg);
                 }
+
+                //Always load from the default config path
+                let config_path = Path::new(DEFAULT_CONFIG_PATH);
+
+                //Load the config
+                match config::load_config(&config_path) {
+                    Err(e) => {
+                        println!("Yalc config check: [ERROR]");
+                        eprintln!("Config error: {}", e);
+                    }
+                    Ok(raw_config) => {
+                        println!("Yalc config check: [VALID]");
+
+                        //Adjust the config based on the provided cli args
+                        let config = config::adjust_runner_config(raw_config, &args);
+                    }
+                }
+
                 Ok(())
             }
         }

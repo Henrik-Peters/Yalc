@@ -71,4 +71,43 @@ pub fn load_config(path: &Path) -> Result<Config, io::Error> {
 }
 
 /// Create a new config where the cli args overwrite the config values
-pub fn adjust_runner_config(config: Config, args: &Vec<String>) -> Config {}
+pub fn adjust_runner_config(config: Config, args: &Vec<String>) -> Config {
+    //Do not change the config on empty args
+    if args.is_empty() {
+        return config;
+    }
+
+    //Config attributes that can be overwritten
+    let mut dry_run: bool = config.dry_run;
+    let mut missing_files_ok: bool = config.missing_files_ok;
+    let mut copy_truncate: bool = config.copy_truncate;
+
+    for arg in args.iter() {
+        match arg.to_lowercase().as_str() {
+            "--dry" | "-d" => {
+                dry_run = true;
+            }
+            "--ignore-miss" | "-i" => {
+                missing_files_ok = true;
+            }
+            "--trunc" | "-t" => {
+                copy_truncate = true;
+            }
+            _ => {
+                //Ignore invalid args
+            }
+        }
+    }
+
+    let adjusted_config: Config = Config {
+        dry_run,
+        mode: config.mode,
+        keep_rotate: config.keep_rotate,
+        missing_files_ok,
+        copy_truncate,
+        file_list: config.file_list,
+        retention: config.retention,
+    };
+
+    adjusted_config
+}

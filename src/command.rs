@@ -100,11 +100,6 @@ impl Command {
                 }
             },
             Command::Run(args) => {
-                println!("Executing 'run' with the following arguments:");
-                for (i, arg) in args.iter().enumerate() {
-                    println!("  Arg {}: {}", i + 1, arg);
-                }
-
                 //Always load from the default config path
                 let config_path = Path::new(DEFAULT_CONFIG_PATH);
 

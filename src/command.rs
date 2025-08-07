@@ -64,29 +64,11 @@ impl Command {
         }
 
         match args[0].to_lowercase().as_str() {
-            "help" => Command::Help,
+            "help" | "-h" | "h" | "?" => Command::Help,
             "version" | "-v" | "v" => Command::Version,
             "config" | "-c" | "c" => Self::parse_config_command(&args),
-            "run" => {
-                //All remaining args after run are parsed as run args
-                match Self::parse_run_args(&args[1..].to_vec()) {
-                    Ok(run_args) => Command::Run(run_args),
-                    Err(e) => {
-                        eprintln!("{}", e);
-                        Command::Help
-                    }
-                }
-            }
-            _ => {
-                //Execute run by default
-                match Self::parse_run_args(&args) {
-                    Ok(run_args) => Command::Run(run_args),
-                    Err(e) => {
-                        eprintln!("{}", e);
-                        Command::Help
-                    }
-                }
-            }
+            "run" => Self::parse_run_command(&args[1..]),
+            _ => Self::parse_run_command(&args),
         }
     }
 
@@ -112,6 +94,16 @@ impl Command {
                 args.len()
             );
             Command::Help
+        }
+    }
+
+    fn parse_run_command(args: &[String]) -> Command {
+        match Self::parse_run_args(&args.to_vec()) {
+            Ok(run_args) => Command::Run(run_args),
+            Err(e) => {
+                eprintln!("{}", e);
+                Command::Help
+            }
         }
     }
 

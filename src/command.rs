@@ -9,7 +9,10 @@ use crate::{
     constants::{DEFAULT_CONFIG_PATH, YALC_VERSION},
 };
 
-use std::path::Path;
+use std::{
+    io::{self, ErrorKind},
+    path::Path,
+};
 
 /// Enum representing different commands that can be executed
 #[derive(Debug)]
@@ -24,7 +27,7 @@ pub enum Command {
     Config(ConfigArg),
 
     /// Run command to execute with additional arguments
-    Run(Vec<String>),
+    Run(Vec<RunArg>),
 }
 
 /// Enum representing different config command arguments
@@ -35,6 +38,19 @@ pub enum ConfigArg {
 
     /// Check if the config file exists and is valid
     Check,
+}
+
+/// Enum representing different run arguments
+#[derive(Debug)]
+pub enum RunArg {
+    /// Overwrite the config value 'dry_run' with true
+    DryRun,
+
+    /// Overwrite the config value 'missing_files_ok' with true
+    MissingFilesOk,
+
+    /// Overwrite the config value 'copy_truncate' with true
+    Truncate,
 }
 
 impl Command {
@@ -67,11 +83,55 @@ impl Command {
                 }
             }
             "run" => {
-                let run_args = args[1..].to_vec();
-                Command::Run(run_args)
+                //All remaining args after run are parsed as run args
+                match Self::parse_run_args(&args[1..].to_vec()) {
+                    Ok(run_args) => Command::Run(run_args),
+                    Err(e) => {
+                        eprintln!("{}", e);
+                        Command::Help
+                    }
+                }
             }
-            _ => Command::Help,
+            _ => {
+                //Execute run by default
+                match Self::parse_run_args(&args) {
+                    Ok(run_args) => Command::Run(run_args),
+                    Err(e) => {
+                        eprintln!("{}", e);
+                        Command::Help
+                    }
+                }
+            }
         }
+    }
+
+    fn parse_run_args(args: &Vec<String>) -> Result<Vec<RunArg>, io::Error> {
+        let mut run_args: Vec<RunArg> = Vec::with_capacity(args.capacity());
+
+        //Convert each argument
+        for arg in args.iter() {
+            match arg.to_lowercase().as_str() {
+                "--dry" | "-d" => {
+                    run_args.push(RunArg::DryRun);
+                }
+                "--ignore-miss" | "-i" => {
+                    run_args.push(RunArg::MissingFilesOk);
+                }
+                "--trunc" | "-t" => {
+                    run_args.push(RunArg::Truncate);
+                }
+                _ => {
+                    //Invalid argument
+                    eprintln!("Invalid run argument: '{}'", arg);
+                    return Err(io::Error::new(
+                        ErrorKind::InvalidInput,
+                        format!("Invalid run argument: '{}'", arg),
+                    ));
+                }
+            }
+        }
+
+        Ok(run_args)
     }
 
     pub fn execute(&self) -> Result<(), Box<dyn std::error::Error>> {
@@ -99,7 +159,7 @@ impl Command {
                     Ok(())
                 }
             },
-            Command::Run(args) => {
+            Command::Run(run_args) => {
                 //Always load from the default config path
                 let config_path = Path::new(DEFAULT_CONFIG_PATH);
 
@@ -113,7 +173,7 @@ impl Command {
                         println!("Yalc config check: [VALID]");
 
                         //Adjust the config based on the provided cli args
-                        let config = config::adjust_runner_config(raw_config, &args);
+                        let config = config::adjust_runner_config(raw_config, &run_args);
                     }
                 }
 

@@ -8,6 +8,7 @@ use std::fs::{File, metadata};
 use std::io::{self, Error, ErrorKind, Write};
 use std::path::Path;
 
+use crate::command::RunArg;
 use crate::config::{Config, toml_parser};
 use crate::constants::{DEFAULT_CONFIG_CONTENT, DEFAULT_CONFIG_PATH};
 
@@ -71,7 +72,7 @@ pub fn load_config(path: &Path) -> Result<Config, io::Error> {
 }
 
 /// Create a new config where the cli args overwrite the config values
-pub fn adjust_runner_config(config: Config, args: &Vec<String>) -> Config {
+pub fn adjust_runner_config(config: Config, run_args: &Vec<RunArg>) -> Config {
     //Do not change the config on empty args
     if args.is_empty() {
         return config;

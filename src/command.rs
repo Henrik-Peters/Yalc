@@ -66,22 +66,7 @@ impl Command {
         match args[0].to_lowercase().as_str() {
             "help" => Command::Help,
             "version" | "-v" | "v" => Command::Version,
-            "config" | "-c" | "c" => {
-                //Use the check command when config is called without additional args
-                if args.len() == 1 {
-                    Command::Config(ConfigArg::Check)
-                } else if args.len() == 2 {
-                    //Parse the config argument command
-                    match args[1].to_lowercase().as_str() {
-                        "init" => Command::Config(ConfigArg::Init),
-                        "check" => Command::Config(ConfigArg::Check),
-                        _ => Command::Help, //Display help in case of invalid config arg
-                    }
-                } else {
-                    //Invalid config argument length
-                    Command::Help
-                }
-            }
+            "config" | "-c" | "c" => Self::parse_config_command(&args),
             "run" => {
                 //All remaining args after run are parsed as run args
                 match Self::parse_run_args(&args[1..].to_vec()) {
@@ -102,6 +87,31 @@ impl Command {
                     }
                 }
             }
+        }
+    }
+
+    fn parse_config_command(args: &Vec<String>) -> Command {
+        //Use the check command when config is called without additional args
+        if args.len() == 1 {
+            Command::Config(ConfigArg::Check)
+        } else if args.len() == 2 {
+            //Parse the config argument command
+            match args[1].to_lowercase().as_str() {
+                "init" => Command::Config(ConfigArg::Init),
+                "check" => Command::Config(ConfigArg::Check),
+                _ => {
+                    //Display help in case of invalid config arg
+                    eprintln!("Invalid config argument: {}", args[1]);
+                    Command::Help
+                }
+            }
+        } else {
+            //Invalid config argument length
+            eprintln!(
+                "Invalid amount of config arguments provided: {}",
+                args.len()
+            );
+            Command::Help
         }
     }
 

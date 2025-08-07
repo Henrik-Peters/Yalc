@@ -74,7 +74,7 @@ pub fn load_config(path: &Path) -> Result<Config, io::Error> {
 /// Create a new config where the cli args overwrite the config values
 pub fn adjust_runner_config(config: Config, run_args: &Vec<RunArg>) -> Config {
     //Do not change the config on empty args
-    if args.is_empty() {
+    if run_args.is_empty() {
         return config;
     }
 
@@ -83,20 +83,11 @@ pub fn adjust_runner_config(config: Config, run_args: &Vec<RunArg>) -> Config {
     let mut missing_files_ok: bool = config.missing_files_ok;
     let mut copy_truncate: bool = config.copy_truncate;
 
-    for arg in args.iter() {
-        match arg.to_lowercase().as_str() {
-            "--dry" | "-d" => {
-                dry_run = true;
-            }
-            "--ignore-miss" | "-i" => {
-                missing_files_ok = true;
-            }
-            "--trunc" | "-t" => {
-                copy_truncate = true;
-            }
-            _ => {
-                //Ignore invalid args
-            }
+    for arg in run_args.iter() {
+        match arg {
+            RunArg::DryRun => dry_run = true,
+            RunArg::MissingFilesOk => missing_files_ok = true,
+            RunArg::Truncate => copy_truncate = true,
         }
     }
 
@@ -133,7 +124,7 @@ mod tests {
             },
         };
 
-        let args: Vec<String> = vec!["-d".to_string(), "-t".to_string()];
+        let args: Vec<RunArg> = vec![RunArg::DryRun, RunArg::Truncate];
         let adjusted_config = adjust_runner_config(raw_config, &args);
 
         assert_eq!(adjusted_config.dry_run, true);

@@ -122,7 +122,6 @@ impl Command {
                 }
                 _ => {
                     //Invalid argument
-                    eprintln!("Invalid run argument: '{}'", arg);
                     return Err(io::Error::new(
                         ErrorKind::InvalidInput,
                         format!("Invalid run argument: '{}'", arg),
@@ -174,6 +173,7 @@ impl Command {
 
                         //Adjust the config based on the provided cli args
                         let config = config::adjust_runner_config(raw_config, &run_args);
+                        println!("adjusted config: {:?}", config);
                     }
                 }
 

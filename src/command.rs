@@ -5,7 +5,7 @@
 //!
 
 use crate::{
-    config,
+    cleaner, config,
     constants::{DEFAULT_CONFIG_PATH, YALC_VERSION},
 };
 
@@ -175,7 +175,10 @@ impl Command {
 
                         //Adjust the config based on the provided cli args
                         let config = config::adjust_runner_config(raw_config, &run_args);
-                        println!("adjusted config: {:?}", config);
+                        print!("{:?}", config);
+
+                        //Execute the cleanup tasks
+                        cleaner::run_cleanup(&config)?;
                     }
                 }
 

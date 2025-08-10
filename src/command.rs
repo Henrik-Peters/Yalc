@@ -175,7 +175,6 @@ impl Command {
 
                         //Adjust the config based on the provided cli args
                         let config = config::adjust_runner_config(raw_config, &run_args);
-                        print!("{:?}", config);
 
                         //Execute the cleanup tasks
                         cleaner::run_cleanup(&config)?;

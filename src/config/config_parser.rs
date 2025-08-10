@@ -27,7 +27,7 @@ pub fn parse_config(root: &TopLevelTable) -> Result<Config, io::Error> {
     let copy_truncate: bool = get_bool(&root, "copy_truncate")?;
 
     //File list config
-    let file_list: Vec<String> = Vec::new();
+    let file_list: Vec<String> = parse_string_vec(&root, "file_list")?;
 
     //Retention config
     let file_size_mb: u64 = get_uint(&root, "retention.file_size_mb")?;
@@ -137,6 +137,40 @@ fn get_string(root: &TopLevelTable, key: &str) -> Result<String, io::Error> {
     }
 }
 
+/// Helper function to extract an array value
+fn get_array<'a>(root: &'a TopLevelTable, key: &str) -> Result<&'a Vec<Value>, io::Error> {
+    match get_value(&root, &key)? {
+        Value::Array(a) => Ok(a),
+        _ => Err(io::Error::new(
+            ErrorKind::InvalidData,
+            format!("Expected array for config key: '{}'", key),
+        )),
+    }
+}
+
+/// Parse all elements of an array as a vector of strings
+fn parse_string_vec(root: &TopLevelTable, key: &str) -> Result<Vec<String>, io::Error> {
+    //Init an empty vector for the list
+    let mut list: Vec<String> = Vec::new();
+    let list_raw = get_array(&root, &key)?;
+
+    for raw_item in list_raw.iter() {
+        match raw_item {
+            Value::String(s) => {
+                list.push(s.clone());
+            }
+            _ => {
+                return Err(io::Error::new(
+                    ErrorKind::InvalidData,
+                    format!("Expected string items in list for config key: '{}'", key),
+                ));
+            }
+        }
+    }
+
+    Ok(list)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -205,5 +239,25 @@ mod tests {
 
         assert_eq!(get_string(&root, "mode").unwrap(), "all".to_string());
         assert_eq!(get_string(&root, "other_key").unwrap(), "other".to_string());
+    }
+
+    #[test]
+    fn test_get_array() {
+        let mut root: TopLevelTable = HashMap::new();
+        root.insert(
+            "file_list".to_string(),
+            Value::Array(vec![
+                Value::Integer(1),
+                Value::Integer(2),
+                Value::Integer(3),
+            ]),
+        );
+
+        let a = get_array(&root, "file_list").unwrap();
+        assert_eq!(a.len(), 3);
+
+        assert_eq!(*a.get(0).unwrap(), Value::Integer(1));
+        assert_eq!(*a.get(1).unwrap(), Value::Integer(2));
+        assert_eq!(*a.get(2).unwrap(), Value::Integer(3));
     }
 }

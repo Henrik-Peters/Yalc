@@ -83,9 +83,8 @@ fn run_file_cleanup(task_idx: usize, config: &Config) -> Result<(), io::Error> {
     if !file_path.exists() {
         if config.missing_files_ok {
             println!(
-                "[{}] File '{}' not found, missing file is configured as okay",
+                "[{}] File not found, missing file is configured as okay",
                 task_nr,
-                file_path.display()
             );
             return Ok(());
         } else {
@@ -109,19 +108,9 @@ fn run_file_cleanup(task_idx: usize, config: &Config) -> Result<(), io::Error> {
 
     //4. If no cleanup conditions are met, we are done with this file.
     if !cleanup_needed {
-        println!(
-            "[{}] No cleanup conditions met for '{}'.",
-            task_nr,
-            file_path.display()
-        );
+        println!("[{}] No cleanup conditions met", task_nr,);
         return Ok(());
     }
-
-    println!(
-        "[{}] Processing '{}' for cleanup...",
-        task_nr,
-        file_path.display()
-    );
 
     //5. Handle dry run: log action and exit without changes
     if config.dry_run {
@@ -154,10 +143,10 @@ fn check_cleanup_conditions(
 
         if metadata.len() > size_limit_bytes {
             println!(
-                "[{}] Condition met: File size ({} bytes) exceeds limit ({} bytes).",
+                "[{}] Condition met: File size ({} mb) exceeds limit ({} mb)",
                 task_nr,
-                metadata.len(),
-                size_limit_bytes
+                metadata.len() / 1024 / 1024,
+                config.retention.file_size_mb
             );
             cleanup_needed = true;
         }
@@ -174,7 +163,7 @@ fn check_cleanup_conditions(
             //Check if the age of the file exceeds the limit
             if duration_since_write > time_limit_duration {
                 println!(
-                    "[{}] Condition met: Last write age ({:.0?}) exceeds limit ({:.0?}).",
+                    "[{}] Condition met: Last write age ({:.0?}) exceeds limit ({:.0?})",
                     task_nr, duration_since_write, time_limit_duration
                 );
                 cleanup_needed = true;
@@ -193,7 +182,7 @@ fn perform_file_cleanup(
 ) -> Result<(), io::Error> {
     if config.keep_rotate == 0 {
         //If keep_rotate is 0, we just delete the file.
-        println!("[{}] keep_rotate is 0, removing file.", task_nr);
+        println!("[{}] Removing file: keep_rotate is zero", task_nr);
         fs::remove_file(file_path)?;
     } else {
         //Rotate files by shifting them: file.1 -> file.2, file.0 -> file.1, etc.
@@ -219,7 +208,7 @@ fn perform_file_cleanup(
         let new_rotated_path_str = format!("{}.0", file_path.display());
         if config.copy_truncate {
             println!(
-                "[{}] Copying original to '{}' and truncating.",
+                "[{}] Copying original to '{}' and truncating",
                 task_nr, new_rotated_path_str
             );
             fs::copy(file_path, &new_rotated_path_str)?;
@@ -231,7 +220,7 @@ fn perform_file_cleanup(
                 .open(file_path)?;
         } else {
             println!(
-                "[{}] Renaming original to '{}'.",
+                "[{}] Renaming original to '{}'",
                 task_nr, new_rotated_path_str
             );
             fs::rename(file_path, &new_rotated_path_str)?;

@@ -96,10 +96,10 @@ impl FromStr for CleanUpMode {
 #[derive(Debug)]
 pub struct RetentionConfig {
     /// Size in megabytes that a file must exceed in order to be cleaned up
-    file_size_mb: u64,
+    pub file_size_mb: u64,
 
     /// Hours since the last write operation before a file is cleaned up
-    last_write_h: u64,
+    pub last_write_h: u64,
 }
 
 impl Config {

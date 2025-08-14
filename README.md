@@ -18,6 +18,9 @@ cargo build
 # Build in release mode
 cargo build --release
 
+# Build release with current system cpu optimizations
+RUSTFLAGS="-C target-cpu=native" cargo build --release -v
+
 # Execute via cargo in debug mode
 cargo run
 
@@ -60,4 +63,13 @@ cargo run -- config check
 
 # Show default compile target and details
 rustc --version --verbose
+
+# Show all installed targets
+rustup target list
+
+# List all supported cpu architectures
+rustc --print target-cpus
+
+# Display current cpu architecture features
+rustc -C target-cpu=native --print cfg
 ```

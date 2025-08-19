@@ -40,11 +40,24 @@ automatically, you can set up a cronjob or something similar.
 
 ### Install
 The Yalc executable must simply be installed in some `$PATH` included folder.
+For system-wide installation usually `/usr/local/bin` is useful.
 
 ### Example usage
 ```bash
 # Check if yalc is installed properly by showing the installed version
 yalc version
+
+# Show available commands and options
+yalc help
+
+# Check if the config file is valid
+yalc config check
+
+# Only Simulate cleanup tasks (dry-mode)
+yalc -d
+
+# Execute all configured cleanup tasks
+yalc
 ```
 
 ## Notes for development

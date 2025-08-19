@@ -143,7 +143,7 @@ fn check_cleanup_conditions(
 
         if metadata.len() > size_limit_bytes {
             println!(
-                "[{}] Condition met: File size ({} mb) exceeds limit ({} mb)",
+                "[{}] Condition met: File size ({} MiB) exceeds limit ({} MiB)",
                 task_nr,
                 metadata.len() / 1024 / 1024,
                 config.retention.file_size_mb
@@ -162,9 +162,13 @@ fn check_cleanup_conditions(
 
             //Check if the age of the file exceeds the limit
             if duration_since_write > time_limit_duration {
+                //Calculate hours for readable output
+                let duration_since_write_h: u64 = duration_since_write.as_secs() / 3600;
+                let time_limit_duration_h: u64 = time_limit_duration.as_secs() / 3600;
+
                 println!(
-                    "[{}] Condition met: Last write age ({:.0?}) exceeds limit ({:.0?})",
-                    task_nr, duration_since_write, time_limit_duration
+                    "[{}] Condition met: Last write age ({} h) exceeds limit ({} h)",
+                    task_nr, duration_since_write_h, time_limit_duration_h
                 );
                 cleanup_needed = true;
             }

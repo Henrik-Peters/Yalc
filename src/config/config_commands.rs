@@ -119,7 +119,7 @@ mod tests {
             copy_truncate: false,
             file_list: vec!["/var/log/my_app.log".to_string()],
             retention: RetentionConfig {
-                file_size_mb: 50,
+                file_size_mib: 50,
                 last_write_h: 168,
             },
         };

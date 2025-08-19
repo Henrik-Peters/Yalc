@@ -139,14 +139,14 @@ fn check_cleanup_conditions(
 
     //Check file size condition
     if matches!(config.mode, CleanUpMode::FileSize | CleanUpMode::All) {
-        let size_limit_bytes = config.retention.file_size_mb * 1024 * 1024;
+        let size_limit_bytes: u64 = config.retention.file_size_mib * 1024 * 1024;
 
         if metadata.len() > size_limit_bytes {
             println!(
                 "[{}] Condition met: File size ({} MiB) exceeds limit ({} MiB)",
                 task_nr,
                 metadata.len() / 1024 / 1024,
-                config.retention.file_size_mb
+                config.retention.file_size_mib
             );
             cleanup_needed = true;
         }

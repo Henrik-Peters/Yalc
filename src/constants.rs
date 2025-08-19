@@ -12,18 +12,17 @@ pub const DEFAULT_CONFIG_CONTENT: &'static str = r#"# Yalc log rotation config
 dry_run = false
 mode = "FileSize"
 
-keep_rotate = 4
+keep_rotate = 3
 
 missing_files_ok = true
 copy_truncate = true
 
 file_list = [
-    "apple.log",
-    "banana.log", 
-    "cherry.log"
+    "/var/log/test.log",
+    "/opt/app/logs/server.log"
 ]
 
 [retention]
-file_size_mb = 10
+file_size_mib = 10
 last_write_h = 5
 "#;

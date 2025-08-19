@@ -95,8 +95,8 @@ impl FromStr for CleanUpMode {
 /// Represents the config values before a file cleanup should be started
 #[derive(Debug)]
 pub struct RetentionConfig {
-    /// Size in megabytes that a file must exceed in order to be cleaned up
-    pub file_size_mb: u64,
+    /// Size in MiB=(1024*1024 Bytes) that a file must exceed in order to be cleaned up
+    pub file_size_mib: u64,
 
     /// Hours since the last write operation before a file is cleaned up
     pub last_write_h: u64,
@@ -122,7 +122,7 @@ impl Config {
         }
 
         println!("  Retention Config:");
-        println!("    File Size (MB): {}", self.retention.file_size_mb);
+        println!("    File Size (MiB): {}", self.retention.file_size_mib);
         println!("    Last Write (hours): {}", self.retention.last_write_h);
     }
 }

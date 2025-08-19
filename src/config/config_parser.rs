@@ -30,11 +30,11 @@ pub fn parse_config(root: &TopLevelTable) -> Result<Config, io::Error> {
     let file_list: Vec<String> = parse_string_vec(&root, "file_list")?;
 
     //Retention config
-    let file_size_mb: u64 = get_uint(&root, "retention.file_size_mb")?;
+    let file_size_mib: u64 = get_uint(&root, "retention.file_size_mib")?;
     let last_write_h: u64 = get_uint(&root, "retention.last_write_h")?;
 
     let retention = RetentionConfig {
-        file_size_mb,
+        file_size_mib,
         last_write_h,
     };
 

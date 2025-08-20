@@ -7,6 +7,7 @@
 use crate::{
     cleaner, config,
     constants::{DEFAULT_CONFIG_PATH, YALC_VERSION},
+    help,
 };
 
 use std::{
@@ -138,10 +139,7 @@ impl Command {
     pub fn execute(&self) -> Result<(), Box<dyn std::error::Error>> {
         match self {
             Command::Help => {
-                println!("Available commands:");
-                println!("  help       - Show this help");
-                println!("  version    - Show version number of the program");
-                println!("  run [ARGS] - Execute the run command with args");
+                help::print_help();
                 Ok(())
             }
             Command::Version => {

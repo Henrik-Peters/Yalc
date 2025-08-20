@@ -10,6 +10,7 @@ mod cleaner;
 mod command;
 mod config;
 mod constants;
+mod help;
 
 fn main() {
     //Get arguments passed to this program

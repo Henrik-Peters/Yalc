@@ -1,3 +1,8 @@
+//! # Yalc - Yet Another Log Cleaner
+//! Simple Cli rust tool to clean up local log files regularly
+//!
+//! Main documentation: [GitHub Yalc](https://github.com/Henrik-Peters/Yalc)
+//!
 use crate::command::Command;
 use std::env;
 

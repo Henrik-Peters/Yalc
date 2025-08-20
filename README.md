@@ -4,7 +4,7 @@ Simple Cli rust tool to clean up local log files regularly
 ## Prerequisites
 These tools are required to build yalc:
 
-* OS: Linux (But probably also runs on other operating systems)
+* OS: Linux
 * Rust-Lang Tools (Easy install via [rustup](https://www.rust-lang.org/tools/install))
 * Visual Studio Code (Or some other IDE for developing/viewing rust code)
 * Additional packages may be: `build-essential`, `pkg-config`, `libssl-dev`
@@ -49,6 +49,9 @@ yalc version
 
 # Show available commands and options
 yalc help
+
+# Create a new config file with default values
+yalc config init
 
 # Check if the config file is valid
 yalc config check

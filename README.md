@@ -42,6 +42,11 @@ automatically, you can set up a cronjob or something similar.
 The Yalc executable must simply be installed in some `$PATH` included folder.
 For system-wide installation usually `/usr/local/bin` is useful.
 
+### Config
+The config file location is: `/etc/yalc.toml`
+
+* [Yalc Config Documentation](https://github.com/Henrik-Peters/Yalc/wiki/Config)
+
 ### Example usage
 ```bash
 # Check if yalc is installed properly by showing the installed version
@@ -88,4 +93,15 @@ rustc --print target-cpus
 
 # Display current cpu architecture features
 rustc -C target-cpu=native --print cfg
+
+# Cross-Compilation ARM 64-Bit-Target
+rustup target add aarch64-unknown-linux-gnu
+sudo apt-get install -y gcc-aarch64-linux-gnu
+cargo build --release --target aarch64-unknown-linux-gnu
+```
+
+Configure cross-compiler linker at `~/.cargo/config.toml`:
+```toml
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
 ```

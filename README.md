@@ -8,6 +8,7 @@ These tools are required to build yalc:
 * Rust-Lang Tools (Easy install via [rustup](https://www.rust-lang.org/tools/install))
 * Visual Studio Code (Or some other IDE for developing/viewing rust code)
 * Additional packages may be: `build-essential`, `pkg-config`, `libssl-dev`
+* Yalc is a zero-dependencies project, it only uses the rust standard library
 
 ## Building
 Compile yalc by using the default cargo commands:
